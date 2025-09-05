@@ -4,7 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Meeting Analytics Dashboard</title>
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+
+  <!-- Chart.js -->
+  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
     body{
@@ -16,29 +19,25 @@
     @keyframes fadeIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
     .header{background:rgba(255,255,255,.95);backdrop-filter:blur(10px);border-radius:20px;padding:30px;margin-bottom:30px;box-shadow:0 10px 40px rgba(0,0,0,.1)}
     .header h1{color:#2d3748;font-size:32px;font-weight:700;margin-bottom:10px}
-    .date-range{display:inline-flex;align-items:center;gap:10px;background:#f7fafc;padding:10px 20px;border-radius:10px;color:#718096;font-size:14px;margin-top:15px;transition:.3s;cursor:pointer}
-    .date-range:hover{background:#edf2f7;transform:translateY(-2px)}
+    .date-range{display:inline-flex;align-items:center;gap:10px;background:#f7fafc;padding:10px 20px;border-radius:10px;color:#718096;font-size:14px;margin-top:15px}
     .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:20px;margin-bottom:30px}
-    .stat-card{background:rgba(255,255,255,.95);backdrop-filter:blur(10px);border-radius:20px;padding:25px;box-shadow:0 10px 40px rgba(0,0,0,.1);transition:.3s cubic-bezier(.4,0,.2,1);cursor:pointer;position:relative;overflow:hidden}
+    .stat-card{background:rgba(255,255,255,.95);backdrop-filter:blur(10px);border-radius:20px;padding:25px;box-shadow:0 10px 40px rgba(0,0,0,.1);position:relative;overflow:hidden}
     .stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,#667eea,#764ba2);transform:scaleX(0);transition:transform .3s}
     .stat-card:hover::before{transform:scaleX(1)}
-    .stat-card:hover{transform:translateY(-5px);box-shadow:0 20px 60px rgba(0,0,0,.15)}
     .stat-label{color:#718096;font-size:14px;font-weight:500;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
     .stat-value{color:#2d3748;font-size:36px;font-weight:700;margin-bottom:10px;background:linear-gradient(135deg,#667eea,#764ba2);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
     .stat-change{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:20px;font-size:12px;font-weight:600}
     .stat-change.positive{background:#c6f6d5;color:#22543d}
     .stat-change.negative{background:#fed7d7;color:#742a2a}
     .charts-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(500px,1fr));gap:20px;margin-bottom:30px}
-    .chart-card{background:rgba(255,255,255,.95);backdrop-filter:blur(10px);border-radius:20px;padding:30px;box-shadow:0 10px 40px rgba(0,0,0,.1);transition:.3s}
-    .chart-card:hover{transform:translateY(-5px);box-shadow:0 20px 60px rgba(0,0,0,.15)}
+    .chart-card{background:rgba(255,255,255,.95);backdrop-filter:blur(10px);border-radius:20px;padding:30px;box-shadow:0 10px 40px rgba(0,0,0,.1)}
     .chart-title{color:#2d3748;font-size:18px;font-weight:600;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between}
     .chart-container{position:relative;height:300px}
     .table-card{background:rgba(255,255,255,.95);backdrop-filter:blur(10px);border-radius:20px;padding:30px;box-shadow:0 10px 40px rgba(0,0,0,.1);margin-bottom:30px}
     .table-card h2{color:#2d3748;font-size:20px;font-weight:600;margin-bottom:20px}
     table{width:100%;border-collapse:collapse}
     th{text-align:left;padding:15px;background:#f7fafc;color:#4a5568;font-weight:600;font-size:14px;text-transform:uppercase;letter-spacing:.5px;border-bottom:2px solid #e2e8f0}
-    td{padding:15px;color:#2d3748;border-bottom:1px solid #e2e8f0;font-size:14px;transition:background .2s}
-    tr:hover td{background:#f7fafc}
+    td{padding:15px;color:#2d3748;border-bottom:1px solid #e2e8f0;font-size:14px}
     .badge{display:inline-block;padding:4px 12px;border-radius:12px;font-size:12px;font-weight:600}
     .badge.completed{background:#c6f6d5;color:#22543d}
     .badge.pending{background:#fef5e7;color:#7d6608}
@@ -52,29 +51,29 @@
   <div class="dashboard">
     <div class="header">
       <h1>📊 Meeting Analytics</h1>
-      <div class="date-range">📅 Last 30 Days</div>
+      <div class="date-range">📅 Past 30 & Next 30 Days</div>
     </div>
 
     <div class="stats-grid">
       <div class="stat-card">
         <div class="stat-label">Total Meetings</div>
-        <div class="stat-value">—</div>
-        <span class="stat-change positive" title="MoM">↑</span>
+        <div class="stat-value" id="kpi-total">—</div>
+        <span class="stat-change positive">↑</span>
       </div>
       <div class="stat-card">
         <div class="stat-label">Meeting Hours</div>
-        <div class="stat-value">—</div>
-        <span class="stat-change positive" title="MoM">↑</span>
+        <div class="stat-value" id="kpi-hours">—</div>
+        <span class="stat-change positive">↑</span>
       </div>
       <div class="stat-card">
         <div class="stat-label">Avg Duration</div>
-        <div class="stat-value">—</div>
-        <span class="stat-change negative" title="MoM">↓</span>
+        <div class="stat-value" id="kpi-avg">—</div>
+        <span class="stat-change negative">↓</span>
       </div>
       <div class="stat-card">
         <div class="stat-label">No-show Rate</div>
-        <div class="stat-value">—</div>
-        <span class="stat-change positive" title="MoM">↓</span>
+        <div class="stat-value" id="kpi-noshow">—</div>
+        <span class="stat-change positive">↓</span>
       </div>
     </div>
 
@@ -122,141 +121,264 @@
             <th>Date</th><th>Time</th><th>Type</th><th>Attendee</th><th>Duration</th><th>Status</th>
           </tr>
         </thead>
-        <tbody></tbody>
+        <tbody id="rows-body"></tbody>
       </table>
     </div>
   </div>
 
-<script>
-// ---------- helpers (safe + compile-clean) ----------
-const lower = (v) => (v == null ? "" : String(v)).toLowerCase();
+  <script>
+    // ========= 1) CONFIG ———— PASTE YOUR URL ON THE NEXT LINE =========
+    const DATA_URL = "PASTE_YOUR_APPS_SCRIPT_WEB_APP_URL_HERE"; // ← replace this string only
+    // ===================================================================
 
-function getField(row, keys) {
-  for (const k of keys) {
-    const key = String(k).toLowerCase();
-    if (row[key] !== undefined && row[key] !== null) {
-      const v = row[key];
-      if (Array.isArray(v) && v.length === 1) return v[0];
-      return typeof v === "string" ? v : String(v);
-    }
-  }
-  return "";
-}
-
-// Accept common key names
-const START_KEYS   = ["start_time","start","start_at","starttime","scheduled_start_time"];
-const END_KEYS     = ["end_time","end","end_at","endtime","scheduled_end_time"];
-const TYPE_KEYS    = ["event_type","type","event","title","meeting_type"];
-const NAME_KEYS    = ["attendee_name","name","guest","invitee_name","contact_name"];
-const EMAIL_KEYS   = ["attendee_email","invitee_email","email","guest_email","contact_email"];
-const STATUS_KEYS  = ["status","state","meeting_status"];
-const CREATED_KEYS = ["created_at","created","booked_at","creation_time"];
-const CANCELED_KEYS= ["canceled_at","cancelled_at","cancellation_time","cancel_time","canceled_time"];
-
-// parseDate that returns a number (ms) or NaN
-function parseDate(val) {
-  if (val == null || val === "") return NaN;
-  const n = Date.parse(val);
-  if (!Number.isNaN(n)) return n;
-  // Add any special parsing you need here; default:
-  return NaN;
-}
-
-// ---------- build rows from normalized `items` ----------
-function buildRows(items) {
-  return items.map((r) => {
-    const start_ms   = parseDate(getField(r, START_KEYS));
-    const end_ms     = parseDate(getField(r, END_KEYS));
-    const created_ms = parseDate(getField(r, CREATED_KEYS));
-    const canceled_ms= parseDate(getField(r, CANCELED_KEYS));
-
-    const type   = getField(r, TYPE_KEYS) || "Other";
-    const name   = getField(r, NAME_KEYS) || "";
-    const email  = getField(r, EMAIL_KEYS) || "";
-    const status = lower(getField(r, STATUS_KEYS));
-
-    return {
-      start_ms,
-      end_ms,
-      created_ms,
-      canceled_ms,
-      event_type: type,
-      attendee_name: name,
-      attendee_email: email,
-      status
-    };
-  });
-}
-</script>
-
-<script>
-(function () {
-  // Run after DOM is ready
-  const ready = (fn) =>
-    (document.readyState !== "loading"
-      ? fn()
-      : document.addEventListener("DOMContentLoaded", fn));
-
-  // Add a small banner
-  function banner(msg, good=false) {
-    const el = document.createElement("div");
-    el.textContent = msg;
-    el.style.cssText = `margin:10px 0 0;color:${good?'#22543d':'#742a2a'};background:${good?'#c6f6d5':'#fed7d7'};border:1px solid ${good?'#9ae6b4':'#f5b7b1'};padding:8px 12px;border-radius:10px;font-weight:600`;
-    (document.querySelector(".header") || document.body).appendChild(el);
-  }
-
-  ready(async function () {
-    // 1) Is Chart.js loaded?
-    if (!window.Chart) {
-      console.error("Chart.js not loaded");
-      banner("Chart.js failed to load — check the <script> CDN tag.", false);
-      return;
+    // --- small banner helper ---
+    function banner(msg, good=false) {
+      const el = document.createElement("div");
+      el.textContent = msg;
+      el.style.cssText =
+        `margin:10px 0 0;color:${good?'#22543d':'#742a2a'};` +
+        `background:${good?'#c6f6d5':'#fed7d7'};border:1px solid ${good?'#9ae6b4':'#f5b7b1'};` +
+        `padding:8px 12px;border-radius:10px;font-weight:600`;
+      (document.querySelector(".header")||document.body).appendChild(el);
     }
 
-    // 2) Do canvases exist?
-    const mc = document.getElementById("meetingsChart");
-    if (!mc) {
-      console.error("Canvas #meetingsChart not found");
-      banner("Canvas #meetingsChart not found — is the HTML intact?", false);
-      return;
+    // --- safety helpers ---
+    const lower = (v) => (v == null ? "" : String(v)).toLowerCase();
+    const toStr = (v) => (v == null ? "" : String(v));
+
+    function getField(row, keys) {
+      for (const k of keys) {
+        const key = String(k).toLowerCase();
+        if (row[key] !== undefined && row[key] !== null) {
+          const v = row[key];
+          if (Array.isArray(v) && v.length === 1) return String(v[0]);
+          return typeof v === "string" ? v : String(v);
+        }
+      }
+      return "";
     }
 
-    // 3) Smoke test: draw a tiny bar, then destroy it
-    try {
-      const testCtx = mc.getContext("2d");
-      const testChart = new Chart(testCtx, {
-        type: "bar",
-        data: { labels: ["OK"], datasets: [{ label: "Smoke", data: [1] }] },
-        options: { animation: false, plugins: { legend: { display: false } } }
+    // parse to epoch ms or NaN
+    function parseMs(val) {
+      if (val == null || val === "") return NaN;
+      const n = Date.parse(val);
+      return Number.isNaN(n) ? NaN : n;
+    }
+
+    const START_KEYS   = ["start_time","start","start_at","starttime","scheduled_start_time"];
+    const END_KEYS     = ["end_time","end","end_at","endtime","scheduled_end_time"];
+    const TYPE_KEYS    = ["event_type","type","event","title","meeting_type"];
+    const NAME_KEYS    = ["attendee_name","name","guest","invitee_name","contact_name"];
+    const EMAIL_KEYS   = ["attendee_email","invitee_email","email","guest_email","contact_email"];
+    const STATUS_KEYS  = ["status","state","meeting_status"];
+    const CREATED_KEYS = ["created_at","created","booked_at","creation_time"];
+    const CANCELED_KEYS= ["canceled_at","cancelled_at","cancellation_time","cancel_time","canceled_time"];
+
+    const fmtDate = (d) => d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
+    const fmtTime = (d) => d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+    const durationMin = (a,b) => Math.max(0, Math.round((b-a)/60000));
+
+    async function loadData() {
+      document.getElementById('spinner1').style.display = 'inline-block';
+      document.getElementById('spinner2').style.display = 'inline-block';
+
+      // 1) Fetch + robustly parse
+      let payload = {};
+      try {
+        const res  = await fetch(DATA_URL, { cache: 'no-store' });
+        const text = await res.text();
+        try { payload = JSON.parse(text); }
+        catch(e){ console.error("Non-JSON:", text.slice(0,400)); payload = {}; }
+      } catch (e) {
+        console.error("Fetch failed:", e);
+        banner("Could not fetch data. Check your URL / deployment.", false);
+        return;
+      }
+
+      // 2) Normalize to array of objects with lower_snake keys
+      let items = [];
+      if (Array.isArray(payload?.items)) items = payload.items;
+      else if (Array.isArray(payload))   items = payload;
+      else if (payload && typeof payload === 'object') {
+        const vals = Object.values(payload);
+        if (vals.length && typeof vals[0] === 'object') items = vals;
+      }
+      items = items.map(obj => {
+        const out = {};
+        Object.entries(obj || {}).forEach(([k,v]) => {
+          const nk = String(k).trim().toLowerCase().replace(/[\s\-]+/g,'_').replace(/[^\w]/g,'');
+          out[nk] = v;
+        });
+        return out;
       });
-      banner("Chart canvas OK — trying to load data…", true);
-      setTimeout(() => {
-        try { Chart.getChart(testCtx.canvas)?.destroy(); } catch {}
-      }, 300);
-    } catch (e) {
-      console.error("Smoke test failed:", e);
-      banner("Could not draw to canvas — see console.", false);
-      return;
+
+      console.log("Raw payload sample:", items[0]);
+
+      // 3) Build normalized rows
+      const rows = items.map((r) => {
+        const start_ms   = parseMs(getField(r, START_KEYS));
+        const end_ms     = parseMs(getField(r, END_KEYS));
+        const created_ms = parseMs(getField(r, CREATED_KEYS));
+        const canceled_ms= parseMs(getField(r, CANCELED_KEYS));
+        return {
+          start_ms,
+          end_ms,
+          created_ms,
+          canceled_ms,
+          event_type: toStr(getField(r, TYPE_KEYS) || "Other"),
+          attendee_name: toStr(getField(r, NAME_KEYS) || ""),
+          attendee_email: toStr(getField(r, EMAIL_KEYS) || ""),
+          status: lower(getField(r, STATUS_KEYS))
+        };
+      });
+
+      // 4) Window: past 30 days through next 30 days by START TIME (so future events show)
+      const now = new Date();
+      const startWindow = new Date(now); startWindow.setDate(startWindow.getDate() - 29);
+      const endWindow = new Date(now);   endWindow.setDate(endWindow.getDate() + 30);
+
+      const inWindow = rows.filter(r => !Number.isNaN(r.start_ms) && r.start_ms >= +new Date(startWindow.toDateString()) && r.start_ms <= +endWindow);
+
+      if (!inWindow.length) {
+        banner("No events in the past 30 or next 30 days (by start time). Data loaded.", true);
+      }
+
+      // 5) KPIs
+      const durations = inWindow.map(r => Number.isNaN(r.end_ms) ? 0 : durationMin(new Date(r.start_ms), new Date(r.end_ms)));
+      const totalMeetings = inWindow.length;
+      const hours = Math.round(durations.reduce((a,b)=>a+b,0)/60);
+      const avg   = Math.round((durations.reduce((a,b)=>a+b,0)/Math.max(1,durations.length)) || 0);
+      const noShows = inWindow.filter(r => r.status === 'no_show' || r.status === 'no-show').length;
+
+      document.getElementById('kpi-total').textContent = totalMeetings;
+      document.getElementById('kpi-hours').textContent = hours;
+      document.getElementById('kpi-avg').textContent   = `${avg}m`;
+      document.getElementById('kpi-noshow').textContent= totalMeetings ? `${Math.round((noShows/totalMeetings)*100)}%` : '0%';
+
+      // 6) Daily buckets
+      const labels = [];
+      const key = (d) => `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
+      const buckets = {};
+      for (let i=29;i>=-30;i--) { // past 30 to next 30
+        const d = new Date(now); d.setDate(d.getDate()-i);
+        const lbl = d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
+        labels.push(lbl);
+        buckets[key(d)] = { completed:0, cancelled:0 };
+      }
+      inWindow.forEach(r => {
+        const s = new Date(r.start_ms);
+        const k = key(s);
+        const st = r.status;
+        if (!buckets[k]) return;
+        if (st === 'canceled' || st === 'cancelled') buckets[k].cancelled++;
+        else buckets[k].completed++;
+      });
+
+      // 7) Charts
+      const ctx1 = document.getElementById('meetingsChart').getContext('2d');
+      new Chart(ctx1, {
+        type:'line',
+        data:{ labels, datasets:[
+          { label:'Completed', data:Object.values(buckets).map(b=>b.completed), borderColor:'#667eea', backgroundColor:'rgba(102,126,234,0.1)', tension:0.4, fill:true },
+          { label:'Cancelled', data:Object.values(buckets).map(b=>b.cancelled), borderColor:'#fc8181', backgroundColor:'rgba(252,129,129,0.1)', tension:0.4, fill:true }
+        ] },
+        options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'top' } } }
+      });
+
+      const byType = {};
+      inWindow.forEach(r => { byType[r.event_type || 'Other'] = (byType[r.event_type || 'Other']||0)+1; });
+      const ctx2 = document.getElementById('typesChart').getContext('2d');
+      new Chart(ctx2, {
+        type:'doughnut',
+        data:{ labels:Object.keys(byType), datasets:[{ data:Object.values(byType), backgroundColor:['#667eea','#764ba2','#f093fb','#96ceb4','#ffeaa7'], borderWidth:0 }] },
+        options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'right' } } }
+      });
+
+      const hoursBuckets = Array(24).fill(0);
+      inWindow.forEach(r => { hoursBuckets[new Date(r.start_ms).getHours()]++; });
+      const labelsHours = ['12AM','1AM','2AM','3AM','4AM','5AM','6AM','7AM','8AM','9AM','10AM','11AM','12PM','1PM','2PM','3PM','4PM','5PM','6PM','7PM','8PM','9PM','10PM','11PM'];
+      const ctx3 = document.getElementById('timeSlotsChart').getContext('2d');
+      new Chart(ctx3, {
+        type:'bar',
+        data:{ labels:labelsHours, datasets:[{ label:'Meetings', data:hoursBuckets, backgroundColor:'rgba(102,126,234,0.8)', borderColor:'#667eea', borderRadius:10 }] },
+        options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } } }
+      });
+
+      const dow = [0,0,0,0,0,0,0];
+      inWindow.forEach(r => { dow[new Date(r.start_ms).getDay()]++; });
+      const ctx4 = document.getElementById('dayChart').getContext('2d');
+      new Chart(ctx4, {
+        type:'radar',
+        data:{ labels:['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'],
+          datasets:[{ label:'Meetings', data:dow, borderColor:'#667eea', backgroundColor:'rgba(102,126,234,0.2)' }] },
+        options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } } }
+      });
+
+      // 8) Table
+      const tbody = document.getElementById('rows-body');
+      tbody.innerHTML = '';
+      inWindow
+        .map(r => ({ ...r, s:new Date(r.start_ms), e:new Date(r.end_ms) }))
+        .sort((a,b)=> b.s - a.s)
+        .slice(0, 10)
+        .forEach(r => {
+          const cls = (r.status === 'cancelled' || r.status === 'canceled') ? 'cancelled'
+                    : (r.status === 'pending' ? 'pending' : 'completed');
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td>${isNaN(+r.s) ? '—' : fmtDate(r.s)}</td>
+            <td>${isNaN(+r.s) ? '—' : fmtTime(r.s)}</td>
+            <td>${r.event_type || '—'}</td>
+            <td>${r.attendee_name || '—'}</td>
+            <td>${isNaN(+r.e) ? '—' : (durationMin(r.s,r.e)+' min')}</td>
+            <td><span class="badge ${cls}">${(r.status||'completed').replace(/^./,m=>m.toUpperCase())}</span></td>
+          `;
+          tbody.appendChild(tr);
+        });
+
+      document.getElementById('spinner1').style.display = 'none';
+      document.getElementById('spinner2').style.display = 'none';
+      banner("Data loaded.", true);
     }
 
-    // 4) Call your existing loader safely
-    if (typeof loadData !== "function") {
-      console.error("loadData() not found");
-      banner("loadData() is not defined — is your main <script> included?", false);
-      return;
-    }
+    // --- DOM ready + smoke test + call loadData() ---
+    (function () {
+      const ready = (fn) =>
+        (document.readyState !== "loading"
+          ? fn()
+          : document.addEventListener("DOMContentLoaded", fn));
 
-    try {
-      await loadData();
-      banner("Data loaded call completed.", true);
-    } catch (e) {
-      console.error("loadData error:", e);
-      banner("loadData() threw an error — see console for details.", false);
-    }
-  });
-})();
-</script>
-
-
+      ready(async function () {
+        if (!window.Chart) {
+          banner("Chart.js failed to load — check the CDN tag.", false);
+          return;
+        }
+        const mc = document.getElementById("meetingsChart");
+        if (!mc) {
+          banner("Canvas #meetingsChart not found — is the HTML intact?", false);
+          return;
+        }
+        try {
+          // quick smoke bar so you know the canvas works
+          const t = new Chart(mc.getContext("2d"), {
+            type:"bar",
+            data:{labels:["OK"],datasets:[{label:"Smoke",data:[1]}]},
+            options:{animation:false,plugins:{legend:{display:false}}}
+          });
+          setTimeout(()=>{ try { Chart.getChart(mc)?.destroy(); } catch{} }, 200);
+        } catch (e) {
+          console.error("Canvas smoke test failed:", e);
+          banner("Cannot draw on canvas — see console.", false);
+          return;
+        }
+        try {
+          await loadData();
+        } catch (e) {
+          console.error("loadData error:", e);
+          banner("loadData() threw an error — see console.", false);
+        }
+      });
+    })();
+  </script>
 </body>
 </html>
