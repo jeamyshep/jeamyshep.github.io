@@ -189,6 +189,74 @@ function buildRows(items) {
 }
 </script>
 
+<script>
+(function () {
+  // Run after DOM is ready
+  const ready = (fn) =>
+    (document.readyState !== "loading"
+      ? fn()
+      : document.addEventListener("DOMContentLoaded", fn));
+
+  // Add a small banner
+  function banner(msg, good=false) {
+    const el = document.createElement("div");
+    el.textContent = msg;
+    el.style.cssText = `margin:10px 0 0;color:${good?'#22543d':'#742a2a'};background:${good?'#c6f6d5':'#fed7d7'};border:1px solid ${good?'#9ae6b4':'#f5b7b1'};padding:8px 12px;border-radius:10px;font-weight:600`;
+    (document.querySelector(".header") || document.body).appendChild(el);
+  }
+
+  ready(async function () {
+    // 1) Is Chart.js loaded?
+    if (!window.Chart) {
+      console.error("Chart.js not loaded");
+      banner("Chart.js failed to load — check the <script> CDN tag.", false);
+      return;
+    }
+
+    // 2) Do canvases exist?
+    const mc = document.getElementById("meetingsChart");
+    if (!mc) {
+      console.error("Canvas #meetingsChart not found");
+      banner("Canvas #meetingsChart not found — is the HTML intact?", false);
+      return;
+    }
+
+    // 3) Smoke test: draw a tiny bar, then destroy it
+    try {
+      const testCtx = mc.getContext("2d");
+      const testChart = new Chart(testCtx, {
+        type: "bar",
+        data: { labels: ["OK"], datasets: [{ label: "Smoke", data: [1] }] },
+        options: { animation: false, plugins: { legend: { display: false } } }
+      });
+      banner("Chart canvas OK — trying to load data…", true);
+      setTimeout(() => {
+        try { Chart.getChart(testCtx.canvas)?.destroy(); } catch {}
+      }, 300);
+    } catch (e) {
+      console.error("Smoke test failed:", e);
+      banner("Could not draw to canvas — see console.", false);
+      return;
+    }
+
+    // 4) Call your existing loader safely
+    if (typeof loadData !== "function") {
+      console.error("loadData() not found");
+      banner("loadData() is not defined — is your main <script> included?", false);
+      return;
+    }
+
+    try {
+      await loadData();
+      banner("Data loaded call completed.", true);
+    } catch (e) {
+      console.error("loadData error:", e);
+      banner("loadData() threw an error — see console for details.", false);
+    }
+  });
+})();
+</script>
+
 
 </body>
 </html>
