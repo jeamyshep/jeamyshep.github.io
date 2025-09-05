@@ -139,7 +139,7 @@
   // Normalize header names like "Start Time", "start_time", "StartTime" -> "start_time"
   const normKey = k => String(k||'')
     .trim()
-    .toLowerCase()
+    lower(...)
     .replace(/[\s\-]+/g, '_')
     .replace(/[^\w]/g, '');
 
@@ -235,7 +235,7 @@
     console.log('After normalization, first row:', items[0]);
 
     // Safely lower-case anything (string/number/bool/null/object)
-const lower = v => (v == null ? "" : String(v)).toLowerCase();
+const lower = v => (v == null ? "" : String(v)).lower(...));
     
     // Map fields with broad key support
     const START_KEYS = ['start_time','start','start_at','starttime','scheduled_start_time'];
