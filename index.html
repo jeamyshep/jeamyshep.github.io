@@ -127,260 +127,68 @@
     </div>
   </div>
 
-  <script>
-  // ⬇️ Set this to your Apps Script Web App (or proxy) URL that returns JSON
-  const DASHBOARD_DATA_URL = "https://script.google.com/a/macros/shepherdapp.com/s/AKfycbz7qVyJHTv6s1UP6-SgidFVbtSRxodLh1YRNwfYHjx0Q6Emd30O9S1dC_KLqLmYsz2Rxg/exec";
+<script>
+// ---------- helpers (safe + compile-clean) ----------
+const lower = (v) => (v == null ? "" : String(v)).toLowerCase();
 
-  // ---- helpers ----
-  const fmtDate  = d => d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
-  const fmtTime  = d => d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
-  const durationMin = (a,b)=> Math.max(0, Math.round((b-a)/60000));
-
-  // Normalize header names like "Start Time", "start_time", "StartTime" -> "start_time"
-  const normKey = k => String(k||'')
-    .trim()
-    lower(...)
-    .replace(/[\s\-]+/g, '_')
-    .replace(/[^\w]/g, '');
-
-  // Parse many date formats, including serials
-  function parseDate(val) {
-    if (!val && val !== 0) return NaN;
-
-    // If Sheets Apps Script returns a Date, it may already be a string ISO
-    if (val instanceof Date) return +val;
-    if (typeof val === 'string') {
-      // Common mm/dd/yyyy [hh:mm] [am/pm]
-      const s = val.trim();
-      const iso = Date.parse(s);
-      if (!Number.isNaN(iso)) return iso;
-
-      // Try replacing space before AM/PM with 'T' to help parsing
-      const m = s.match(/^(\d{1,2}\/\d{1,2}\/\d{2,4})\s+(\d{1,2}:\d{2})(?:\s*(AM|PM))?$/i);
-      if (m) {
-        const base = new Date(m[1] + ' ' + m[2] + (m[3] ? ' ' + m[3].toUpperCase() : ''));
-        if (!Number.isNaN(+base)) return +base;
-      }
+function getField(row, keys) {
+  for (const k of keys) {
+    const key = String(k).toLowerCase();
+    if (row[key] !== undefined && row[key] !== null) {
+      const v = row[key];
+      if (Array.isArray(v) && v.length === 1) return v[0];
+      return typeof v === "string" ? v : String(v);
     }
-
-    // Excel/Sheets serial dates (days since 1899-12-30)
-    if (typeof val === 'number' && val > 25569 && val < 60000) {
-      const ms = (val - 25569) * 86400 * 1000;
-      return ms;
-    }
-
-    return Number(val); // try numeric epoch ms/seconds if provided
   }
+  return "";
+}
 
-  // Safely turn payload into array of rows (supports multiple shapes)
-  function toItems(payload) {
-    if (Array.isArray(payload?.items)) return payload.items;
-    if (Array.isArray(payload)) return payload;
+// Accept common key names
+const START_KEYS   = ["start_time","start","start_at","starttime","scheduled_start_time"];
+const END_KEYS     = ["end_time","end","end_at","endtime","scheduled_end_time"];
+const TYPE_KEYS    = ["event_type","type","event","title","meeting_type"];
+const NAME_KEYS    = ["attendee_name","name","guest","invitee_name","contact_name"];
+const EMAIL_KEYS   = ["attendee_email","invitee_email","email","guest_email","contact_email"];
+const STATUS_KEYS  = ["status","state","meeting_status"];
+const CREATED_KEYS = ["created_at","created","booked_at","creation_time"];
+const CANCELED_KEYS= ["canceled_at","cancelled_at","cancellation_time","cancel_time","canceled_time"];
 
-    // Google Sheets "values" shape
-    if (Array.isArray(payload?.values)) {
-      const [header, ...rows] = payload.values;
-      const H = (header||[]).map(normKey);
-      return rows.map(r => Object.fromEntries(H.map((h,i)=>[h, r[i]])));
-    }
+// parseDate that returns a number (ms) or NaN
+function parseDate(val) {
+  if (val == null || val === "") return NaN;
+  const n = Date.parse(val);
+  if (!Number.isNaN(n)) return n;
+  // Add any special parsing you need here; default:
+  return NaN;
+}
 
-    // Object keyed by id
-    if (payload && typeof payload === 'object') {
-      const vals = Object.values(payload);
-      if (Array.isArray(vals) && vals.length && typeof vals[0] === 'object') return vals;
-    }
-    return [];
-  }
+// ---------- build rows from normalized `items` ----------
+function buildRows(items) {
+  return items.map((r) => {
+    const start_ms   = parseDate(getField(r, START_KEYS));
+    const end_ms     = parseDate(getField(r, END_KEYS));
+    const created_ms = parseDate(getField(r, CREATED_KEYS));
+    const canceled_ms= parseDate(getField(r, CANCELED_KEYS));
 
-  // Extract a field by trying many common key variants
-  function getField(row, variants) {
-    for (const v of variants) {
-      const k = normKey(v);
-      if (row[k] !== undefined && row[k] !== null && row[k] !== '') return row[k];
-    }
-    return undefined;
-  }
+    const type   = getField(r, TYPE_KEYS) || "Other";
+    const name   = getField(r, NAME_KEYS) || "";
+    const email  = getField(r, EMAIL_KEYS) || "";
+    const status = lower(getField(r, STATUS_KEYS));
 
-  async function loadData() {
-    document.getElementById('spinner1').style.display = 'inline-block';
-    document.getElementById('spinner2').style.display = 'inline-block';
-
-    // Fetch & robustly parse, logging raw payload
-    let payload = {};
-    try {
-      const res  = await fetch(DASHBOARD_DATA_URL, { cache: 'no-store' });
-      const text = await res.text();
-      try { payload = JSON.parse(text); }
-      catch (e) {
-        console.error('Non-JSON response:', text.slice(0, 500));
-        payload = {};
-      }
-    } catch (e) {
-      console.error('Fetch failed:', e);
-      payload = {};
-    }
-    console.log('Raw payload:', payload);
-
-    // Turn into array; normalize keys
-    let items = toItems(payload);
-
-    // If array of objects with mixed header styles, normalize row keys
-    items = items.map(obj => {
-      if (!obj || typeof obj !== 'object') return {};
-      const out = {};
-      for (const [k,v] of Object.entries(obj)) out[normKey(k)] = v;
-      return out;
-    });
-
-    console.log('After normalization, first row:', items[0]);
-
-    // Safely lower-case anything (string/number/bool/null/object)
-const lower = v => (v == null ? "" : String(v)).lower(...));
-    
-    // Map fields with broad key support
-    const START_KEYS = ['start_time','start','start_at','starttime','scheduled_start_time'];
-    const END_KEYS   = ['end_time','end','end_at','endtime','scheduled_end_time'];
-    const TYPE_KEYS  = ['event_type','type','event','title','meeting_type'];
-    const NAME_KEYS  = ['attendee_name','name','guest','invitee_name','contact_name'];
-    const STATUS_KEYS= ['status','state','meeting_status'];
-
-    const now = new Date();
-    const startWindow = new Date(now); startWindow.setDate(startWindow.getDate() - 29);
-
-    // Build only rows with a parseable start time inside last 30 days
-    const rows = items.map(r => {
-      const sRaw = getField(r, START_KEYS);
-      const eRaw = getField(r, END_KEYS);
-      const tRaw = getField(r, TYPE_KEYS) || 'Other';
-      const nRaw = getField(r, NAME_KEYS) || '';
-      const stRaw= (getField(r, STATUS_KEYS) || '').toLowerCase();
-
-      const s = parseDate(sRaw);
-      const e = parseDate(eRaw);
-
-      return {
-        _valid: !Number.isNaN(s),
-        start_ms: s,
-        end_ms: Number.isNaN(e) ? NaN : e,
-        event_type: String(tRaw || 'Other'),
-        attendee_name: String(nRaw || ''),
-        status: stRaw
-      };
-    }).filter(r => r._valid)
-      .filter(r => {
-        const s = new Date(r.start_ms);
-        return s >= new Date(startWindow.toDateString()) && s <= now;
-      });
-
-    if (rows.length === 0) {
-      console.warn('No usable rows found in the last 30 days. Check your field names and date formats.');
-      banner('No data found in the last 30 days. Confirm your Sheet headers & Zap mapping.');
-    }
-
-    // ---- KPIs ----
-    const totalMeetings = rows.length;
-    const durations = rows.map(r => isNaN(r.end_ms) ? 0 : durationMin(new Date(r.start_ms), new Date(r.end_ms)));
-    const hours = Math.round(durations.reduce((a,b)=>a+b,0) / 60);
-    const avg   = Math.round((durations.reduce((a,b)=>a+b,0) / Math.max(1,durations.length)) || 0);
-    const noShows = rows.filter(r => r.status === 'no_show' || r.status === 'no-show').length;
-
-    document.querySelectorAll('.stat-value')[0].textContent = totalMeetings;
-    document.querySelectorAll('.stat-value')[1].textContent = hours;
-    document.querySelectorAll('.stat-value')[2].textContent = `${avg}m`;
-    document.querySelectorAll('.stat-value')[3].textContent = totalMeetings ? `${Math.round((noShows/totalMeetings)*100)}%` : '0%';
-
-    // ---- Time buckets (last 30 days) ----
-    const labels = [];
-    const key = d => `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
-    const buckets = {};
-    for (let i=29;i>=0;i--) {
-      const d = new Date(now); d.setDate(d.getDate()-i);
-      labels.push(d.toLocaleDateString('en-US',{month:'short',day:'numeric'}));
-      buckets[key(d)] = { completed:0, cancelled:0 };
-    }
-    rows.forEach(r => {
-      const s = new Date(r.start_ms);
-      const k = key(s);
-      if (!buckets[k]) return;
-      const st = r.status;
-      if (st === 'cancelled' || st === 'canceled') buckets[k].cancelled++;
-      else buckets[k].completed++;
-    });
-
-    // ---- Charts ----
-    const ctx1 = document.getElementById('meetingsChart').getContext('2d');
-    new Chart(ctx1, {
-      type:'line',
-      data:{ labels, datasets:[
-        { label:'Completed', data:Object.values(buckets).map(b=>b.completed), borderColor:'#667eea', backgroundColor:'rgba(102,126,234,0.1)', tension:0.4, fill:true },
-        { label:'Cancelled', data:Object.values(buckets).map(b=>b.cancelled), borderColor:'#fc8181', backgroundColor:'rgba(252,129,129,0.1)', tension:0.4, fill:true }
-      ]},
-      options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'top' } } }
-    });
-
-    const byType = {};
-    rows.forEach(r => { byType[r.event_type || 'Other'] = (byType[r.event_type || 'Other']||0)+1; });
-    const ctx2 = document.getElementById('typesChart').getContext('2d');
-    new Chart(ctx2, {
-      type:'doughnut',
-      data:{ labels:Object.keys(byType), datasets:[{ data:Object.values(byType), backgroundColor:['#667eea','#764ba2','#f093fb','#96ceb4','#ffeaa7'], borderWidth:0 }] },
-      options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'right' } } }
-    });
-
-    const hoursBuckets = Array(24).fill(0);
-    rows.forEach(r => { hoursBuckets[new Date(r.start_ms).getHours()]++; });
-    const labelsHours = ['12AM','1AM','2AM','3AM','4AM','5AM','6AM','7AM','8AM','9AM','10AM','11AM','12PM','1PM','2PM','3PM','4PM','5PM','6PM','7PM','8PM','9PM','10PM','11PM'];
-    const ctx3 = document.getElementById('timeSlotsChart').getContext('2d');
-    new Chart(ctx3, {
-      type:'bar',
-      data:{ labels:labelsHours, datasets:[{ label:'Meetings', data:hoursBuckets, backgroundColor:'rgba(102,126,234,0.8)', borderColor:'#667eea', borderRadius:10 }] },
-      options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } } }
-    });
-
-    const dow = [0,0,0,0,0,0,0];
-    rows.forEach(r => { dow[new Date(r.start_ms).getDay()]++; });
-    const ctx4 = document.getElementById('dayChart').getContext('2d');
-    new Chart(ctx4, {
-      type:'radar',
-      data:{ labels:['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'],
-        datasets:[{ label:'Meetings', data:dow, borderColor:'#667eea', backgroundColor:'rgba(102,126,234,0.2)' }] },
-      options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } } }
-    });
-
-    // ---- Recent table ----
-    const tbody = document.querySelector('tbody');
-    tbody.innerHTML = '';
-    rows.sort((a,b)=> a.start_ms < b.start_ms ? 1 : -1)
-        .slice(0,5)
-        .forEach(r => {
-          const s = new Date(r.start_ms), e = new Date(r.end_ms);
-          const cls = (r.status === 'cancelled' || r.status === 'canceled') ? 'cancelled'
-                    : (r.status === 'pending' ? 'pending' : 'completed');
-          const tr = document.createElement('tr');
-          tr.innerHTML = `
-            <td>${fmtDate(s)}</td>
-            <td>${fmtTime(s)}</td>
-            <td>${r.event_type || '—'}</td>
-            <td>${r.attendee_name || '—'}</td>
-            <td>${isNaN(+e) ? '—' : durationMin(s,e)+' min'}</td>
-            <td><span class="badge ${cls}">${(r.status||'completed').replace(/^./,m=>m.toUpperCase())}</span></td>
-          `;
-          tbody.appendChild(tr);
-        });
-
-    document.getElementById('spinner1').style.display = 'none';
-    document.getElementById('spinner2').style.display = 'none';
-  }
-
-  function banner(msg) {
-    const el = document.createElement('div');
-    el.textContent = msg;
-    el.style.cssText = 'margin:10px 0 20px;color:#742a2a;background:#fed7d7;border:1px solid #f5b7b1;padding:10px 14px;border-radius:10px;font-weight:600';
-    document.querySelector('.header').appendChild(el);
-  }
-
-  loadData();
+    return {
+      start_ms,
+      end_ms,
+      created_ms,
+      canceled_ms,
+      event_type: type,
+      attendee_name: name,
+      attendee_email: email,
+      status
+    };
+  });
+}
 </script>
+
 
 </body>
 </html>
