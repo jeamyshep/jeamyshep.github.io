@@ -234,6 +234,9 @@
 
     console.log('After normalization, first row:', items[0]);
 
+    // Safely lower-case anything (string/number/bool/null/object)
+const lower = v => (v == null ? "" : String(v)).toLowerCase();
+    
     // Map fields with broad key support
     const START_KEYS = ['start_time','start','start_at','starttime','scheduled_start_time'];
     const END_KEYS   = ['end_time','end','end_at','endtime','scheduled_end_time'];
