@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Shepherd Connect Analytics Dashboard</title>
+  <title>Meeting Analytics Dashboard</title>
 
   <!-- Chart.js -->
   <script defer src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
@@ -42,6 +42,7 @@
     .badge.completed{background:#c6f6d5;color:#22543d}
     .badge.pending{background:#fef5e7;color:#7d6608}
     .badge.cancelled{background:#fed7d7;color:#742a2a}
+    .badge.noshow{background:#ffe8a1;color:#7a4d00}
     .spinner{display:inline-block;width:20px;height:20px;border:3px solid rgba(102,126,234,.3);border-radius:50%;border-top-color:#667eea;animation:spin 1s ease-in-out infinite}
     @keyframes spin{to{transform:rotate(360deg)}}
     @media(max-width:768px){.charts-grid{grid-template-columns:1fr}.stats-grid{grid-template-columns:1fr}}
@@ -50,7 +51,7 @@
 <body>
   <div class="dashboard">
     <div class="header">
-      <h1>📊 Shepherd Connect Analytics</h1>
+      <h1>📊 Meeting Analytics</h1>
       <div class="date-range">📅 Past 30 & Next 30 Days</div>
     </div>
 
@@ -89,11 +90,11 @@
       </div>
       <div class="chart-card">
         <h3 class="chart-title">
-          Meeting Types Distribution
+          Meeting Topics (Q1 Response)
           <span class="spinner" id="spinner2" style="display:none;"></span>
         </h3>
         <div class="chart-container">
-          <canvas id="typesChart"></canvas>
+          <canvas id="topicsChart"></canvas>
         </div>
       </div>
     </div>
@@ -118,7 +119,7 @@
       <table>
         <thead>
           <tr>
-            <th>Date</th><th>Time</th><th>Type</th><th>Attendee</th><th>Duration</th><th>Status</th>
+            <th>Date</th><th>Time</th><th>Topic</th><th>Attendee</th><th>Duration</th><th>Status</th>
           </tr>
         </thead>
         <tbody id="rows-body"></tbody>
@@ -128,10 +129,10 @@
 
   <script>
     // ========= 1) CONFIG ———— PASTE YOUR URL ON THE NEXT LINE =========
-    const DATA_URL = "https://script.google.com/a/macros/shepherdapp.com/s/AKfycbz7qVyJHTv6s1UP6-SgidFVbtSRxodLh1YRNwfYHjx0Q6Emd30O9S1dC_KLqLmYsz2Rxg/exec"; // ← replace this string only
+    const DATA_URL = "https://script.google.com/a/macros/shepherdapp.com/s/AKfycbz7qVyJHTv6s1UP6-SgidFVbtSRxodLh1YRNwfYHjx0Q6Emd30O9S1dC_KLqLmYsz2Rxg/exec"; // ← replace this
     // ===================================================================
 
-    // --- small banner helper ---
+    // --- banner helper ---
     function banner(msg, good=false) {
       const el = document.createElement("div");
       el.textContent = msg;
@@ -158,21 +159,25 @@
       return "";
     }
 
-    // parse to epoch ms or NaN
     function parseMs(val) {
       if (val == null || val === "") return NaN;
       const n = Date.parse(val);
       return Number.isNaN(n) ? NaN : n;
     }
 
+    // Known keys in your payload / sheet
     const START_KEYS   = ["start_time","start","start_at","starttime","scheduled_start_time"];
     const END_KEYS     = ["end_time","end","end_at","endtime","scheduled_end_time"];
-    const TYPE_KEYS    = ["event_type","type","event","title","meeting_type"];
+    const TYPE_KEYS    = ["event_type","type","event","title","meeting_type"]; // we don't chart this anymore
     const NAME_KEYS    = ["attendee_name","name","guest","invitee_name","contact_name"];
     const EMAIL_KEYS   = ["attendee_email","invitee_email","email","guest_email","contact_email"];
     const STATUS_KEYS  = ["status","state","meeting_status"];
     const CREATED_KEYS = ["created_at","created","booked_at","creation_time"];
     const CANCELED_KEYS= ["canceled_at","cancelled_at","cancellation_time","cancel_time","canceled_time"];
+    // NEW: topic + no-show signals
+    const TOPIC_KEYS   = ["question_1_response","question1_response","question_1","q1_response","q1","topic","meeting_topic"];
+    const CANCEL_REASON_KEYS = ["cancel_reason","cancellation_reason","reason","cancelled_reason"];
+    const NOSHOW_KEYS  = ["no_show","noshow","is_no_show","no_show_flag","noshow_flag"];
 
     const fmtDate = (d) => d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
     const fmtTime = (d) => d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
@@ -182,7 +187,7 @@
       document.getElementById('spinner1').style.display = 'inline-block';
       document.getElementById('spinner2').style.display = 'inline-block';
 
-      // 1) Fetch + robustly parse
+      // 1) Fetch + parse
       let payload = {};
       try {
         const res  = await fetch(DATA_URL, { cache: 'no-store' });
@@ -212,54 +217,58 @@
         return out;
       });
 
-      console.log("Raw payload sample:", items[0]);
-
       // 3) Build normalized rows
       const rows = items.map((r) => {
         const start_ms   = parseMs(getField(r, START_KEYS));
         const end_ms     = parseMs(getField(r, END_KEYS));
         const created_ms = parseMs(getField(r, CREATED_KEYS));
         const canceled_ms= parseMs(getField(r, CANCELED_KEYS));
+
+        const type    = toStr(getField(r, TYPE_KEYS) || "Other");
+        const name    = toStr(getField(r, NAME_KEYS) || "");
+        const email   = toStr(getField(r, EMAIL_KEYS) || "");
+        const topic   = toStr(getField(r, TOPIC_KEYS) || "Unspecified");
+        const status0 = lower(getField(r, STATUS_KEYS));
+        const cancelReason = lower(getField(r, CANCEL_REASON_KEYS));
+        const noShowFlag   = lower(getField(r, NOSHOW_KEYS));
+
+        // Normalize: treat cancellations with "no show" reason/flag as no_show
+        const looksLikeNoShow = (cancelReason.includes("no show") || noShowFlag === "true" || noShowFlag === "1" || noShowFlag === "yes");
+        let status = looksLikeNoShow ? "no_show" : status0;
+
         return {
-          start_ms,
-          end_ms,
-          created_ms,
-          canceled_ms,
-          event_type: toStr(getField(r, TYPE_KEYS) || "Other"),
-          attendee_name: toStr(getField(r, NAME_KEYS) || ""),
-          attendee_email: toStr(getField(r, EMAIL_KEYS) || ""),
-          status: lower(getField(r, STATUS_KEYS))
+          start_ms, end_ms, created_ms, canceled_ms,
+          event_type: type,
+          attendee_name: name,
+          attendee_email: email,
+          topic,
+          status
         };
       });
 
-      // 4) Window: past 30 days through next 30 days by START TIME (so future events show)
+      // 4) Window: past 30 days -> next 30 days by START TIME
       const now = new Date();
       const startWindow = new Date(now); startWindow.setDate(startWindow.getDate() - 29);
-      const endWindow = new Date(now);   endWindow.setDate(endWindow.getDate() + 30);
-
+      const endWindow   = new Date(now); endWindow.setDate(endWindow.getDate() + 30);
       const inWindow = rows.filter(r => !Number.isNaN(r.start_ms) && r.start_ms >= +new Date(startWindow.toDateString()) && r.start_ms <= +endWindow);
-
-      if (!inWindow.length) {
-        banner("No events in the past 30 or next 30 days (by start time). Data loaded.", true);
-      }
 
       // 5) KPIs
       const durations = inWindow.map(r => Number.isNaN(r.end_ms) ? 0 : durationMin(new Date(r.start_ms), new Date(r.end_ms)));
       const totalMeetings = inWindow.length;
       const hours = Math.round(durations.reduce((a,b)=>a+b,0)/60);
       const avg   = Math.round((durations.reduce((a,b)=>a+b,0)/Math.max(1,durations.length)) || 0);
-      const noShows = inWindow.filter(r => r.status === 'no_show' || r.status === 'no-show').length;
+      const noShows = inWindow.filter(r => r.status === "no_show").length;
 
       document.getElementById('kpi-total').textContent = totalMeetings;
       document.getElementById('kpi-hours').textContent = hours;
       document.getElementById('kpi-avg').textContent   = `${avg}m`;
       document.getElementById('kpi-noshow').textContent= totalMeetings ? `${Math.round((noShows/totalMeetings)*100)}%` : '0%';
 
-      // 6) Daily buckets
+      // 6) Time series
       const labels = [];
       const key = (d) => `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
       const buckets = {};
-      for (let i=29;i>=-30;i--) { // past 30 to next 30
+      for (let i=29;i>=-30;i--) {
         const d = new Date(now); d.setDate(d.getDate()-i);
         const lbl = d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
         labels.push(lbl);
@@ -268,13 +277,11 @@
       inWindow.forEach(r => {
         const s = new Date(r.start_ms);
         const k = key(s);
-        const st = r.status;
         if (!buckets[k]) return;
-        if (st === 'canceled' || st === 'cancelled') buckets[k].cancelled++;
+        if (r.status === "no_show" || r.status === "canceled" || r.status === "cancelled") buckets[k].cancelled++;
         else buckets[k].completed++;
       });
 
-      // 7) Charts
       const ctx1 = document.getElementById('meetingsChart').getContext('2d');
       new Chart(ctx1, {
         type:'line',
@@ -285,15 +292,27 @@
         options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'top' } } }
       });
 
-      const byType = {};
-      inWindow.forEach(r => { byType[r.event_type || 'Other'] = (byType[r.event_type || 'Other']||0)+1; });
-      const ctx2 = document.getElementById('typesChart').getContext('2d');
-      new Chart(ctx2, {
-        type:'doughnut',
-        data:{ labels:Object.keys(byType), datasets:[{ data:Object.values(byType), backgroundColor:['#667eea','#764ba2','#f093fb','#96ceb4','#ffeaa7'], borderWidth:0 }] },
-        options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'right' } } }
+      // 7) Topic pie (Question 1 Response)
+      const topics = {};
+      inWindow.forEach(r => { topics[r.topic || "Unspecified"] = (topics[r.topic || "Unspecified"] || 0) + 1; });
+      const topicsCtx = document.getElementById("topicsChart").getContext("2d");
+      new Chart(topicsCtx, {
+        type: "doughnut",
+        data: {
+          labels: Object.keys(topics),
+          datasets: [{
+            data: Object.values(topics),
+            backgroundColor: [
+              "#667eea","#764ba2","#f093fb","#96ceb4","#ffeaa7",
+              "#ffd166","#06d6a0","#118ab2","#ef476f","#073b4c"
+            ],
+            borderWidth: 0
+          }]
+        },
+        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "right" } } }
       });
 
+      // 8) Time of day + DOW
       const hoursBuckets = Array(24).fill(0);
       inWindow.forEach(r => { hoursBuckets[new Date(r.start_ms).getHours()]++; });
       const labelsHours = ['12AM','1AM','2AM','3AM','4AM','5AM','6AM','7AM','8AM','9AM','10AM','11AM','12PM','1PM','2PM','3PM','4PM','5PM','6PM','7PM','8PM','9PM','10PM','11PM'];
@@ -314,24 +333,27 @@
         options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } } }
       });
 
-      // 8) Table
+      // 9) Table
       const tbody = document.getElementById('rows-body');
       tbody.innerHTML = '';
       inWindow
         .map(r => ({ ...r, s:new Date(r.start_ms), e:new Date(r.end_ms) }))
         .sort((a,b)=> b.s - a.s)
-        .slice(0, 10)
+        .slice(0, 12)
         .forEach(r => {
-          const cls = (r.status === 'cancelled' || r.status === 'canceled') ? 'cancelled'
-                    : (r.status === 'pending' ? 'pending' : 'completed');
+          const cls = r.status === 'no_show' ? 'noshow'
+                     : (r.status === 'cancelled' || r.status === 'canceled') ? 'cancelled'
+                     : 'completed';
+          const label = r.status === 'no_show' ? 'No-show'
+                      : (r.status === 'cancelled' || r.status === 'canceled') ? 'Cancelled' : 'Completed';
           const tr = document.createElement('tr');
           tr.innerHTML = `
             <td>${isNaN(+r.s) ? '—' : fmtDate(r.s)}</td>
             <td>${isNaN(+r.s) ? '—' : fmtTime(r.s)}</td>
-            <td>${r.event_type || '—'}</td>
+            <td>${r.topic || '—'}</td>
             <td>${r.attendee_name || '—'}</td>
             <td>${isNaN(+r.e) ? '—' : (durationMin(r.s,r.e)+' min')}</td>
-            <td><span class="badge ${cls}">${(r.status||'completed').replace(/^./,m=>m.toUpperCase())}</span></td>
+            <td><span class="badge ${cls}">${label}</span></td>
           `;
           tbody.appendChild(tr);
         });
@@ -341,42 +363,25 @@
       banner("Data loaded.", true);
     }
 
-    // --- DOM ready + smoke test + call loadData() ---
+    // DOM ready + call loadData
     (function () {
       const ready = (fn) =>
         (document.readyState !== "loading"
           ? fn()
           : document.addEventListener("DOMContentLoaded", fn));
-
       ready(async function () {
-        if (!window.Chart) {
-          banner("Chart.js failed to load — check the CDN tag.", false);
-          return;
-        }
+        if (!window.Chart) { banner("Chart.js failed to load — check the CDN tag.", false); return; }
         const mc = document.getElementById("meetingsChart");
-        if (!mc) {
-          banner("Canvas #meetingsChart not found — is the HTML intact?", false);
-          return;
-        }
+        if (!mc) { banner("Canvas #meetingsChart not found — is the HTML intact?", false); return; }
+        // quick smoke test
         try {
-          // quick smoke bar so you know the canvas works
           const t = new Chart(mc.getContext("2d"), {
-            type:"bar",
-            data:{labels:["OK"],datasets:[{label:"Smoke",data:[1]}]},
+            type:"bar", data:{labels:["OK"],datasets:[{label:"Smoke",data:[1]}]},
             options:{animation:false,plugins:{legend:{display:false}}}
           });
           setTimeout(()=>{ try { Chart.getChart(mc)?.destroy(); } catch{} }, 200);
-        } catch (e) {
-          console.error("Canvas smoke test failed:", e);
-          banner("Cannot draw on canvas — see console.", false);
-          return;
-        }
-        try {
-          await loadData();
-        } catch (e) {
-          console.error("loadData error:", e);
-          banner("loadData() threw an error — see console.", false);
-        }
+        } catch (e) { console.error(e); banner("Cannot draw on canvas.", false); return; }
+        try { await loadData(); } catch (e) { console.error(e); banner("loadData() threw an error.", false); }
       });
     })();
   </script>
