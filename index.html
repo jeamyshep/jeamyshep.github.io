@@ -4,384 +4,422 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Meeting Analytics Dashboard</title>
-
-  <!-- Chart.js -->
-  <script defer src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
-
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
   <style>
     *{margin:0;padding:0;box-sizing:border-box}
     body{
       font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Roboto','Helvetica','Arial',sans-serif;
       background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);
-      min-height:100vh;padding:20px
+      min-height:100vh;padding:20px;color:#1f2937
     }
     .dashboard{max-width:1400px;margin:0 auto;animation:fadeIn .5s ease-in}
     @keyframes fadeIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
-    .header{background:rgba(255,255,255,.95);backdrop-filter:blur(10px);border-radius:20px;padding:30px;margin-bottom:30px;box-shadow:0 10px 40px rgba(0,0,0,.1)}
-    .header h1{color:#2d3748;font-size:32px;font-weight:700;margin-bottom:10px}
-    .date-range{display:inline-flex;align-items:center;gap:10px;background:#f7fafc;padding:10px 20px;border-radius:10px;color:#718096;font-size:14px;margin-top:15px}
-    .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:20px;margin-bottom:30px}
-    .stat-card{background:rgba(255,255,255,.95);backdrop-filter:blur(10px);border-radius:20px;padding:25px;box-shadow:0 10px 40px rgba(0,0,0,.1);position:relative;overflow:hidden}
-    .stat-card::before{content:'';position:absolute;top:0;left:0;right:0;height:4px;background:linear-gradient(90deg,#667eea,#764ba2);transform:scaleX(0);transition:transform .3s}
-    .stat-card:hover::before{transform:scaleX(1)}
-    .stat-label{color:#718096;font-size:14px;font-weight:500;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
-    .stat-value{color:#2d3748;font-size:36px;font-weight:700;margin-bottom:10px;background:linear-gradient(135deg,#667eea,#764ba2);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
-    .stat-change{display:inline-flex;align-items:center;gap:5px;padding:5px 10px;border-radius:20px;font-size:12px;font-weight:600}
-    .stat-change.positive{background:#c6f6d5;color:#22543d}
-    .stat-change.negative{background:#fed7d7;color:#742a2a}
-    .charts-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(500px,1fr));gap:20px;margin-bottom:30px}
-    .chart-card{background:rgba(255,255,255,.95);backdrop-filter:blur(10px);border-radius:20px;padding:30px;box-shadow:0 10px 40px rgba(0,0,0,.1)}
-    .chart-title{color:#2d3748;font-size:18px;font-weight:600;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between}
-    .chart-container{position:relative;height:300px}
-    .table-card{background:rgba(255,255,255,.95);backdrop-filter:blur(10px);border-radius:20px;padding:30px;box-shadow:0 10px 40px rgba(0,0,0,.1);margin-bottom:30px}
-    .table-card h2{color:#2d3748;font-size:20px;font-weight:600;margin-bottom:20px}
+    .header,.card{background:rgba(255,255,255,.95);backdrop-filter:blur(10px);border-radius:20px;box-shadow:0 10px 40px rgba(0,0,0,.1)}
+    .header{padding:30px;margin-bottom:16px}
+    .header h1{font-size:32px;font-weight:800;color:#2d3748}
+    .range{display:inline-flex;gap:8px;align-items:center;margin-top:10px;background:#f7fafc;color:#718096;border-radius:10px;padding:8px 14px;font-size:14px}
+    .alert{margin:12px 0;padding:12px 14px;border-radius:12px;font-weight:600}
+    .alert.ok{background:#def7ec;color:#03543f}
+    .alert.warn{background:#fde8e8;color:#9b1c1c}
+    .kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin:16px 0}
+    .kpi .card{padding:22px}
+    .kpi .label{font-size:12px;letter-spacing:.6px;color:#718096;text-transform:uppercase;margin-bottom:8px}
+    .kpi .value{font-size:36px;font-weight:800;background:linear-gradient(135deg,#667eea,#764ba2);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
+    .kpi .chip{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700;margin-top:8px}
+    .chip.up{background:#c6f6d5;color:#22543d}
+    .chip.down{background:#fee2e2;color:#7f1d1d}
+    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(480px,1fr));gap:16px;margin:16px 0}
+    .card{padding:24px}
+    .card h3{font-size:18px;font-weight:700;color:#2d3748;margin-bottom:14px}
+    .chart{position:relative;height:320px}
+    .table{margin-top:16px}
     table{width:100%;border-collapse:collapse}
-    th{text-align:left;padding:15px;background:#f7fafc;color:#4a5568;font-weight:600;font-size:14px;text-transform:uppercase;letter-spacing:.5px;border-bottom:2px solid #e2e8f0}
-    td{padding:15px;color:#2d3748;border-bottom:1px solid #e2e8f0;font-size:14px}
-    .badge{display:inline-block;padding:4px 12px;border-radius:12px;font-size:12px;font-weight:600}
-    .badge.completed{background:#c6f6d5;color:#22543d}
-    .badge.pending{background:#fef5e7;color:#7d6608}
-    .badge.cancelled{background:#fed7d7;color:#742a2a}
-    .badge.noshow{background:#ffe8a1;color:#7a4d00}
-    .spinner{display:inline-block;width:20px;height:20px;border:3px solid rgba(102,126,234,.3);border-radius:50%;border-top-color:#667eea;animation:spin 1s ease-in-out infinite}
+    th,td{padding:14px;border-bottom:1px solid #e5e7eb;font-size:14px;color:#374151}
+    th{text-align:left;background:#f7fafc;color:#4b5563;text-transform:uppercase;letter-spacing:.5px;font-size:12px}
+    .badge{padding:4px 10px;border-radius:999px;font-weight:700;font-size:12px;display:inline-block}
+    .b-ok{background:#d1fae5;color:#065f46}
+    .b-warn{background:#fee2e2;color:#7f1d1d}
+    .b-info{background:#e0e7ff;color:#4338ca}
+    .spinner{display:inline-block;width:18px;height:18px;border:3px solid rgba(102,126,234,.3);border-radius:50%;border-top-color:#667eea;animation:spin 1s ease-in-out infinite;margin-left:8px}
     @keyframes spin{to{transform:rotate(360deg)}}
-    @media(max-width:768px){.charts-grid{grid-template-columns:1fr}.stats-grid{grid-template-columns:1fr}}
+    @media (max-width:768px){.grid{grid-template-columns:1fr}}
   </style>
 </head>
 <body>
   <div class="dashboard">
     <div class="header">
       <h1>📊 Meeting Analytics</h1>
-      <div class="date-range">📅 Past 30 & Next 30 Days</div>
+      <div class="range">📅 Past 30 & Next 30 Days</div>
     </div>
 
-    <div class="stats-grid">
-      <div class="stat-card">
-        <div class="stat-label">Total Meetings</div>
-        <div class="stat-value" id="kpi-total">—</div>
-        <span class="stat-change positive">↑</span>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Meeting Hours</div>
-        <div class="stat-value" id="kpi-hours">—</div>
-        <span class="stat-change positive">↑</span>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">Avg Duration</div>
-        <div class="stat-value" id="kpi-avg">—</div>
-        <span class="stat-change negative">↓</span>
-      </div>
-      <div class="stat-card">
-        <div class="stat-label">No-show Rate</div>
-        <div class="stat-value" id="kpi-noshow">—</div>
-        <span class="stat-change positive">↓</span>
-      </div>
-    </div>
+    <div id="statusBar" class="alert ok" style="display:none;">Data loaded.</div>
 
-    <div class="charts-grid">
-      <div class="chart-card">
-        <h3 class="chart-title">
-          Meetings Over Time
-          <span class="spinner" id="spinner1" style="display:none;"></span>
-        </h3>
-        <div class="chart-container">
-          <canvas id="meetingsChart"></canvas>
-        </div>
+    <div class="kpi">
+      <div class="card">
+        <div class="label">Total Meetings</div>
+        <div id="kpiTotal" class="value">0</div>
+        <div id="kpiTotalDelta" class="chip up" style="display:none;">↑</div>
       </div>
-      <div class="chart-card">
-        <h3 class="chart-title">
-          Meeting Topic Distribution
-          <span class="spinner" id="spinner2" style="display:none;"></span>
-        </h3>
-        <div class="chart-container">
-          <canvas id="topicsChart"></canvas>
-        </div>
+      <div class="card">
+        <div class="label">Meeting Hours</div>
+        <div id="kpiHours" class="value">0</div>
+        <div id="kpiHoursDelta" class="chip up" style="display:none;">↑</div>
+      </div>
+      <div class="card">
+        <div class="label">Avg Duration</div>
+        <div id="kpiAvg" class="value">0m</div>
+        <div id="kpiAvgDelta" class="chip down" style="display:none;">↓</div>
+      </div>
+      <div class="card">
+        <div class="label">No-show Rate</div>
+        <div id="kpiNoShow" class="value">0%</div>
+        <div id="kpiNoShowDelta" class="chip down" style="display:none;">↓</div>
       </div>
     </div>
 
-    <div class="charts-grid">
-      <div class="chart-card">
-        <h3 class="chart-title">Popular Time Slots</h3>
-        <div class="chart-container">
-          <canvas id="timeSlotsChart"></canvas>
-        </div>
+    <div class="grid">
+      <div class="card">
+        <h3>Meetings Over Time <span id="sp1" class="spinner" style="display:none;"></span></h3>
+        <div class="chart"><canvas id="timeChart"></canvas></div>
       </div>
-      <div class="chart-card">
-        <h3 class="chart-title">Day of Week Distribution</h3>
-        <div class="chart-container">
-          <canvas id="dayChart"></canvas>
-        </div>
+      <div class="card">
+        <h3>Meeting Topic Distribution</h3>
+        <div class="chart"><canvas id="topicChart"></canvas></div>
       </div>
     </div>
 
-    <div class="table-card">
-      <h2>Recent Meetings</h2>
-      <table>
+    <div class="grid">
+      <div class="card">
+        <h3>Popular Time Slots</h3>
+        <div class="chart"><canvas id="slotChart"></canvas></div>
+      </div>
+      <div class="card">
+        <h3>Day of Week Distribution</h3>
+        <div class="chart"><canvas id="dowChart"></canvas></div>
+      </div>
+    </div>
+
+    <div class="card table">
+      <h3>Recent Meetings</h3>
+      <table id="tbl">
         <thead>
           <tr>
             <th>Date</th><th>Time</th><th>Topic</th><th>Attendee</th><th>Duration</th><th>Status</th>
           </tr>
         </thead>
-        <tbody id="rows-body"></tbody>
+        <tbody></tbody>
       </table>
     </div>
   </div>
 
   <script>
-    // ========= 1) CONFIG ———— PASTE YOUR URL ON THE NEXT LINE =========
-    const DATA_URL = "https://script.google.com/a/macros/shepherdapp.com/s/AKfycbz7qVyJHTv6s1UP6-SgidFVbtSRxodLh1YRNwfYHjx0Q6Emd30O9S1dC_KLqLmYsz2Rxg/exec"; // ← replace this
-    // ===================================================================
+    // ===========================
+    // CONFIG
+    // ===========================
+    // TODO: PASTE YOUR GOOGLE APPS SCRIPT WEB APP URL HERE
+    const GAS_URL = "https://script.google.com/a/macros/shepherdapp.com/s/AKfycbz7qVyJHTv6s1UP6-SgidFVbtSRxodLh1YRNwfYHjx0Q6Emd30O9S1dC_KLqLmYsz2Rxg/exec";
 
-    // --- banner helper ---
-    function banner(msg, good=false) {
-      const el = document.createElement("div");
-      el.textContent = msg;
-      el.style.cssText =
-        `margin:10px 0 0;color:${good?'#22543d':'#742a2a'};` +
-        `background:${good?'#c6f6d5':'#fed7d7'};border:1px solid ${good?'#9ae6b4':'#f5b7b1'};` +
-        `padding:8px 12px;border-radius:10px;font-weight:600`;
-      (document.querySelector(".header")||document.body).appendChild(el);
-    }
+    // Window to analyze
+    const LOOKBACK_DAYS = 30;   // past 30
+    const LOOKAHEAD_DAYS = 30;  // next 30
 
-    // --- safety helpers ---
-    const lower = (v) => (v == null ? "" : String(v)).toLowerCase();
-    const toStr = (v) => (v == null ? "" : String(v));
+    // ===========================
+    // UTILITIES
+    // ===========================
+    const toISO = (s) => {
+      if (!s) return null;
+      const d = new Date(s);
+      return isNaN(d) ? null : d.toISOString();
+    };
 
-    function getField(row, keys) {
-      for (const k of keys) {
-        const key = String(k).toLowerCase();
-        if (row[key] !== undefined && row[key] !== null) {
-          const v = row[key];
-          if (Array.isArray(v) && v.length === 1) return String(v[0]);
-          return typeof v === "string" ? v : String(v);
-        }
+    const parseDate = (val) => {
+      if (!val) return null;
+      // handle Excel serial numbers
+      if (/^\d{5}(\.\d+)?$/.test(String(val))) {
+        const base = new Date(Date.UTC(1899, 11, 30));
+        const ms = Number(val) * 24 * 3600 * 1000;
+        return new Date(base.getTime() + ms);
       }
-      return "";
-    }
+      const d = new Date(val);
+      return isNaN(d) ? null : d;
+    };
 
-    function parseMs(val) {
-      if (val == null || val === "") return NaN;
-      const n = Date.parse(val);
-      return Number.isNaN(n) ? NaN : n;
-    }
+    const minutesBetween = (start, end) => {
+      if (!start || !end) return 0;
+      return Math.max(0, Math.round((end - start) / 60000));
+    };
 
-    // Known keys in your payload / sheet
-    const START_KEYS   = ["start_time","start","start_at","starttime","scheduled_start_time"];
-    const END_KEYS     = ["end_time","end","end_at","endtime","scheduled_end_time"];
-    const TYPE_KEYS    = ["event_type","type","event","title","meeting_type"]; // we don't chart this anymore
-    const NAME_KEYS    = ["attendee_name","name","guest","invitee_name","contact_name"];
-    const EMAIL_KEYS   = ["attendee_email","invitee_email","email","guest_email","contact_email"];
-    const STATUS_KEYS  = ["status","state","meeting_status"];
-    const CREATED_KEYS = ["created_at","created","booked_at","creation_time"];
-    const CANCELED_KEYS= ["canceled_at","cancelled_at","cancellation_time","cancel_time","canceled_time"];
-    // NEW: topic + no-show signals
-    const TOPIC_KEYS   = ["question_1_response","question1_response","question_1","q1_response","q1","topic","meeting_topic"];
-    const CANCEL_REASON_KEYS = ["cancel_reason","cancellation_reason","reason","cancelled_reason"];
-    const NOSHOW_KEYS  = ["no_show","noshow","is_no_show","no_show_flag","noshow_flag"];
+    const fmtDate = (d) =>
+      d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+    const fmtTime = (d) =>
+      d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 
-    const fmtDate = (d) => d.toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
-    const fmtTime = (d) => d.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
-    const durationMin = (a,b) => Math.max(0, Math.round((b-a)/60000));
+    const getField = (row, names, fallback="") => {
+      // names: array of possible keys (case-insensitive, underscores or spaces ok)
+      const keys = Object.keys(row);
+      for (const n of names) {
+        const needle = String(n).toLowerCase().replace(/\s|&|\/|\\|-/g,'_');
+        const hit = keys.find(k => k.toLowerCase().replace(/\s|&|\/|\\|-/g,'_') === needle);
+        if (hit && row[hit] != null && row[hit] !== "") return row[hit];
+      }
+      return fallback;
+    };
+
+    const normStatus = (s) => {
+      s = String(s||"").toLowerCase();
+      if (!s) return "";
+      if (s.startsWith("cancel")) return "cancelled";
+      if (["no-show","no_show","noshow","no show"].includes(s)) return "no_show";
+      if (["completed","done","ended","finished"].includes(s)) return "completed";
+      if (["scheduled","booked","upcoming","confirmed"].includes(s)) return "scheduled";
+      return s;
+    };
+
+    // Topic field candidates — we’ll use Question 2 / Response 2 first
+    const TOPIC_FIELDS = [
+      "question_2_topic", "response_2", "question_2_response", "question2_response", "q2_response", "q2"
+    ];
+
+    // Date field candidates (your sheet names included)
+    const START_FIELDS = [
+      "start_time","event_start_time","invitee_start_time","start",
+      "start_date_time","start_date_&_time","start_date & time","Start Date & Time"
+    ];
+    const END_FIELDS = [
+      "end_time","event_end_time","invitee_end_time","end",
+      "end_date_time","end_date_&_time","end_date & time","End Date & Time"
+    ];
+    const CREATED_FIELDS = [
+      "created_at","event_created_date_time","event_created_date_&_time","event created date & time"
+    ];
+    const CANCELLED_AT_FIELDS = [
+      "canceled_at","cancelled_at","cancellation_time","cancel_time","cancelled_date_time","canceled_date_time"
+    ];
+
+    // ===========================
+    // MAIN
+    // ===========================
+    let charts = {};
 
     async function loadData() {
-      document.getElementById('spinner1').style.display = 'inline-block';
-      document.getElementById('spinner2').style.display = 'inline-block';
+      document.getElementById('sp1').style.display = 'inline-block';
+      document.getElementById('statusBar').style.display = 'none';
 
-      // 1) Fetch + parse
-      let payload = {};
-      try {
-        const res  = await fetch(DATA_URL, { cache: 'no-store' });
-        const text = await res.text();
-        try { payload = JSON.parse(text); }
-        catch(e){ console.error("Non-JSON:", text.slice(0,400)); payload = {}; }
-      } catch (e) {
-        console.error("Fetch failed:", e);
-        banner("Could not fetch data. Check your URL / deployment.", false);
-        return;
-      }
+      const res = await fetch(GAS_URL);
+      const payload = await res.json(); // expects { items: [...] }
+      const items = payload.items || [];
 
-      // 2) Normalize to array of objects with lower_snake keys
-      let items = [];
-      if (Array.isArray(payload?.items)) items = payload.items;
-      else if (Array.isArray(payload))   items = payload;
-      else if (payload && typeof payload === 'object') {
-        const vals = Object.values(payload);
-        if (vals.length && typeof vals[0] === 'object') items = vals;
-      }
-      items = items.map(obj => {
-        const out = {};
-        Object.entries(obj || {}).forEach(([k,v]) => {
-          const nk = String(k).trim().toLowerCase().replace(/[\s\-]+/g,'_').replace(/[^\w]/g,'');
-          out[nk] = v;
-        });
-        return out;
-      });
+      // Normalize rows
+      const rows = items.map(r => {
+        const startRaw = getField(r, START_FIELDS);
+        const endRaw   = getField(r, END_FIELDS);
+        const createdRaw = getField(r, CREATED_FIELDS);
+        const cancelledAtRaw = getField(r, CANCELLED_AT_FIELDS);
 
-      // 3) Build normalized rows
-      const rows = items.map((r) => {
-        const start_ms   = parseMs(getField(r, START_KEYS));
-        const end_ms     = parseMs(getField(r, END_KEYS));
-        const created_ms = parseMs(getField(r, CREATED_KEYS));
-        const canceled_ms= parseMs(getField(r, CANCELED_KEYS));
+        const start = parseDate(startRaw);
+        const end   = parseDate(endRaw);
+        const created = parseDate(createdRaw);
+        const cancelledAt = parseDate(cancelledAtRaw);
 
-        const type    = toStr(getField(r, TYPE_KEYS) || "Other");
-        const name    = toStr(getField(r, NAME_KEYS) || "");
-        const email   = toStr(getField(r, EMAIL_KEYS) || "");
-        const topic   = toStr(getField(r, TOPIC_KEYS) || "Unspecified");
-        const status0 = lower(getField(r, STATUS_KEYS));
-        const cancelReason = lower(getField(r, CANCEL_REASON_KEYS));
-        const noShowFlag   = lower(getField(r, NOSHOW_KEYS));
+        const topic = (getField(r, TOPIC_FIELDS, "") || "").trim() || "Unspecified";
+        const status0 = normStatus(getField(r, ["status"], ""));
+        const cancelReason = (getField(r, ["cancel_reason","cancellation_reason","reason"], "") || "").toLowerCase();
+        const explicitNoShow = String(getField(r, ["no_show","noshow","is_no_show","marked_as_no_show"], "")).toLowerCase();
 
-        // Normalize: treat cancellations with "no show" reason/flag as no_show
-        const looksLikeNoShow = (cancelReason.includes("no show") || noShowFlag === "true" || noShowFlag === "1" || noShowFlag === "yes");
-        let status = looksLikeNoShow ? "no_show" : status0;
+        let status = status0;
+        let noShow = false;
+        if (explicitNoShow === "true" || explicitNoShow === "1" || explicitNoShow === "yes" || cancelReason.includes("no show") || cancelReason.includes("noshow")) {
+          noShow = true;
+          status = "no_show";
+        } else if (!status && cancelledAt) {
+          status = "cancelled";
+        }
+
+        const attendee = getField(r, ["attendee_name","invitee_name","name","full_name"]);
+        const attendeeEmail = getField(r, ["attendee_email","invitee_email","email"]);
+        const eventType = getField(r, ["event_type","meeting_type","title","name"], "Shepherd Connect");
+        const eventUUID = getField(r, ["event_uuid","scheduled_event_uri","scheduled_event_url","event_url","uri"]);
 
         return {
-          start_ms, end_ms, created_ms, canceled_ms,
-          event_type: type,
-          attendee_name: name,
-          attendee_email: email,
-          topic,
-          status
+          event_uuid: eventUUID,
+          start, end, created, cancelledAt,
+          topic, status, noShow,
+          attendee, attendeeEmail, eventType,
+          durationMin: minutesBetween(start, end)
         };
       });
 
-      // 4) Window: past 30 days -> next 30 days by START TIME
+      // Filter to window: past 30 + next 30 by START time
       const now = new Date();
-      const startWindow = new Date(now); startWindow.setDate(startWindow.getDate() - 29);
-      const endWindow   = new Date(now); endWindow.setDate(endWindow.getDate() + 30);
-      const inWindow = rows.filter(r => !Number.isNaN(r.start_ms) && r.start_ms >= +new Date(startWindow.toDateString()) && r.start_ms <= +endWindow);
+      const from = new Date(now); from.setDate(from.getDate()-LOOKBACK_DAYS);
+      const to   = new Date(now); to.setDate(to.getDate()+LOOKAHEAD_DAYS);
 
-      // 5) KPIs
-      const durations = inWindow.map(r => Number.isNaN(r.end_ms) ? 0 : durationMin(new Date(r.start_ms), new Date(r.end_ms)));
-      const totalMeetings = inWindow.length;
-      const hours = Math.round(durations.reduce((a,b)=>a+b,0)/60);
-      const avg   = Math.round((durations.reduce((a,b)=>a+b,0)/Math.max(1,durations.length)) || 0);
-      const noShows = inWindow.filter(r => r.status === "no_show").length;
+      const inWindow = rows.filter(r => r.start && r.start >= from && r.start <= to);
 
-      document.getElementById('kpi-total').textContent = totalMeetings;
-      document.getElementById('kpi-hours').textContent = hours;
-      document.getElementById('kpi-avg').textContent   = `${avg}m`;
-      document.getElementById('kpi-noshow').textContent= totalMeetings ? `${Math.round((noShows/totalMeetings)*100)}%` : '0%';
+      // === KPIs ===
+      const total = inWindow.length;
+      const totalMinutes = inWindow.reduce((acc, r) => acc + r.durationMin, 0);
+      const totalHours = Math.round(totalMinutes/60);
+      const avgDuration = total ? Math.round(totalMinutes/total) : 0;
+      const noShowCount = inWindow.filter(r => r.status === "no_show").length;
+      const cancelledCount = inWindow.filter(r => r.status === "cancelled").length;
 
-      // 6) Time series
-      const labels = [];
-      const key = (d) => `${d.getFullYear()}-${d.getMonth()+1}-${d.getDate()}`;
-      const buckets = {};
-      for (let i=29;i>=-30;i--) {
-        const d = new Date(now); d.setDate(d.getDate()-i);
-        const lbl = d.toLocaleDateString('en-US',{month:'short',day:'numeric'});
-        labels.push(lbl);
-        buckets[key(d)] = { completed:0, cancelled:0 };
+      document.getElementById('kpiTotal').textContent = total;
+      document.getElementById('kpiHours').textContent = totalHours;
+      document.getElementById('kpiAvg').textContent = `${avgDuration}m`;
+      document.getElementById('kpiNoShow').textContent = `${Math.round((noShowCount/Math.max(1,total))*100)}%`;
+
+      // === Over Time (line) ===
+      const days = [];
+      const completedSeries = [];
+      const cancelledSeries = [];
+
+      // build per day buckets (inclusive range)
+      const dayCursor = new Date(from);
+      dayCursor.setHours(0,0,0,0);
+      while (dayCursor <= to) {
+        const d0 = new Date(dayCursor);
+        const label = d0.toLocaleDateString(undefined,{month:'short', day:'numeric'});
+        days.push(label);
+        const sameDay = inWindow.filter(r => r.start && r.start.toDateString() === d0.toDateString());
+        completedSeries.push(sameDay.filter(r => r.status !== "cancelled" && r.status !== "no_show").length);
+        cancelledSeries.push(sameDay.filter(r => r.status === "cancelled" || r.status === "no_show").length);
+        dayCursor.setDate(dayCursor.getDate()+1);
       }
+
+      // === Topics (donut) ===
+      const topicCounts = {};
       inWindow.forEach(r => {
-        const s = new Date(r.start_ms);
-        const k = key(s);
-        if (!buckets[k]) return;
-        if (r.status === "no_show" || r.status === "canceled" || r.status === "cancelled") buckets[k].cancelled++;
-        else buckets[k].completed++;
+        topicCounts[r.topic] = (topicCounts[r.topic] || 0) + 1;
+      });
+      const topicLabels = Object.keys(topicCounts);
+      const topicData = topicLabels.map(k => topicCounts[k]);
+
+      // === Slots (bar) ===
+      const slotBuckets = ["7 AM","8 AM","9 AM","10 AM","11 AM","12 PM","1 PM","2 PM","3 PM","4 PM","5 PM"];
+      const slotValues = slotBuckets.map(() => 0);
+      inWindow.forEach(r => {
+        if (!r.start) return;
+        let h = r.start.getHours();
+        let label = "";
+        const hour12 = ((h+11)%12)+1;
+        const ampm = h<12 ? "AM":"PM";
+        label = `${hour12} ${ampm}`;
+        const idx = slotBuckets.indexOf(label);
+        if (idx >= 0) slotValues[idx] += 1;
       });
 
-      const ctx1 = document.getElementById('meetingsChart').getContext('2d');
-      new Chart(ctx1, {
-        type:'line',
-        data:{ labels, datasets:[
-          { label:'Completed', data:Object.values(buckets).map(b=>b.completed), borderColor:'#667eea', backgroundColor:'rgba(102,126,234,0.1)', tension:0.4, fill:true },
-          { label:'Cancelled', data:Object.values(buckets).map(b=>b.cancelled), borderColor:'#fc8181', backgroundColor:'rgba(252,129,129,0.1)', tension:0.4, fill:true }
-        ] },
-        options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'top' } } }
+      // === Day of week (radar) ===
+      const dowBuckets = ["Mon","Tue","Wed","Thu","Fri"];
+      const dowValues = [0,0,0,0,0];
+      inWindow.forEach(r => {
+        if (!r.start) return;
+        const idx = (r.start.getDay()+6)%7; // 0=Mon ... 6=Sun
+        if (idx <= 4) dowValues[idx] += 1;
       });
 
-      // 7) Topic pie (Question 1 Response)
-      const topics = {};
-      inWindow.forEach(r => { topics[r.topic || "Unspecified"] = (topics[r.topic || "Unspecified"] || 0) + 1; });
-      const topicsCtx = document.getElementById("topicsChart").getContext("2d");
-      new Chart(topicsCtx, {
-        type: "doughnut",
+      // === Render charts ===
+      // cleanup old instances if hot-reloading
+      for (const k in charts){ try{ charts[k].destroy(); }catch(e){} }
+
+      charts.time = new Chart(document.getElementById('timeChart'), {
+        type: 'line',
         data: {
-          labels: Object.keys(topics),
-          datasets: [{
-            data: Object.values(topics),
-            backgroundColor: [
-              "#667eea","#764ba2","#f093fb","#96ceb4","#ffeaa7",
-              "#ffd166","#06d6a0","#118ab2","#ef476f","#073b4c"
-            ],
-            borderWidth: 0
-          }]
+          labels: days,
+          datasets: [
+            {
+              label: 'Completed',
+              data: completedSeries,
+              borderColor: '#667eea',
+              backgroundColor: 'rgba(102,126,234,0.12)',
+              tension: 0.35, fill: true, pointRadius: 2
+            },
+            {
+              label: 'Cancelled/No-show',
+              data: cancelledSeries,
+              borderColor: '#fb7185',
+              backgroundColor: 'rgba(251,113,133,0.12)',
+              tension: 0.35, fill: true, pointRadius: 2
+            }
+          ]
         },
-        options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: "right" } } }
+        options: {
+          responsive:true, maintainAspectRatio:false,
+          plugins:{ legend:{position:'top'}, tooltip:{mode:'index', intersect:false} },
+          scales:{ y:{ beginAtZero:true }, x:{ grid:{display:false} } }
+        }
       });
 
-      // 8) Time of day + DOW
-      const hoursBuckets = Array(24).fill(0);
-      inWindow.forEach(r => { hoursBuckets[new Date(r.start_ms).getHours()]++; });
-      const labelsHours = ['12AM','1AM','2AM','3AM','4AM','5AM','6AM','7AM','8AM','9AM','10AM','11AM','12PM','1PM','2PM','3PM','4PM','5PM','6PM','7PM','8PM','9PM','10PM','11PM'];
-      const ctx3 = document.getElementById('timeSlotsChart').getContext('2d');
-      new Chart(ctx3, {
-        type:'bar',
-        data:{ labels:labelsHours, datasets:[{ label:'Meetings', data:hoursBuckets, backgroundColor:'rgba(102,126,234,0.8)', borderColor:'#667eea', borderRadius:10 }] },
-        options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } } }
+      charts.topic = new Chart(document.getElementById('topicChart'), {
+        type: 'doughnut',
+        data: { labels: topicLabels, datasets: [{ data: topicData, borderWidth: 0 }] },
+        options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'right' } } }
       });
 
-      const dow = [0,0,0,0,0,0,0];
-      inWindow.forEach(r => { dow[new Date(r.start_ms).getDay()]++; });
-      const ctx4 = document.getElementById('dayChart').getContext('2d');
-      new Chart(ctx4, {
-        type:'radar',
-        data:{ labels:['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'],
-          datasets:[{ label:'Meetings', data:dow, borderColor:'#667eea', backgroundColor:'rgba(102,126,234,0.2)' }] },
-        options:{ responsive:true, maintainAspectRatio:false, plugins:{ legend:{ display:false } } }
+      charts.slot = new Chart(document.getElementById('slotChart'), {
+        type: 'bar',
+        data: { labels: slotBuckets, datasets: [{ label:'Meetings', data: slotValues, borderRadius:10, backgroundColor:'rgba(102,126,234,.85)' }] },
+        options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}}, scales:{x:{grid:{display:false}}, y:{beginAtZero:true}} }
       });
 
-      // 9) Table
-      const tbody = document.getElementById('rows-body');
-      tbody.innerHTML = '';
+      charts.dow = new Chart(document.getElementById('dowChart'), {
+        type: 'radar',
+        data: { labels: dowBuckets, datasets: [{ label:'Meetings', data: dowValues, borderColor:'#667eea', backgroundColor:'rgba(102,126,234,0.2)' }] },
+        options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}} }
+      });
+
+      // === Recent table (latest 50 by start desc) ===
+      const tbody = document.querySelector('#tbl tbody');
+      tbody.innerHTML = "";
       inWindow
-        .map(r => ({ ...r, s:new Date(r.start_ms), e:new Date(r.end_ms) }))
-        .sort((a,b)=> b.s - a.s)
-        .slice(0, 12)
+        .filter(r => !!r.start)
+        .sort((a,b) => b.start - a.start)
+        .slice(0,50)
         .forEach(r => {
-          const cls = r.status === 'no_show' ? 'noshow'
-                     : (r.status === 'cancelled' || r.status === 'canceled') ? 'cancelled'
-                     : 'completed';
-          const label = r.status === 'no_show' ? 'No-show'
-                      : (r.status === 'cancelled' || r.status === 'canceled') ? 'Cancelled' : 'Completed';
           const tr = document.createElement('tr');
+          const date = fmtDate(r.start);
+          const time = fmtTime(r.start);
+          const topic = r.topic || "Unspecified";
+          const attendee = r.attendee || "";
+          const dur = `${r.durationMin} min`;
+          const status = r.status === "no_show" ? "No Show" : (r.status || "Scheduled");
+          const badgeClass = r.status === "no_show" ? "b-warn" : (r.status === "cancelled" ? "b-info" : "b-ok");
           tr.innerHTML = `
-            <td>${isNaN(+r.s) ? '—' : fmtDate(r.s)}</td>
-            <td>${isNaN(+r.s) ? '—' : fmtTime(r.s)}</td>
-            <td>${r.topic || '—'}</td>
-            <td>${r.attendee_name || '—'}</td>
-            <td>${isNaN(+r.e) ? '—' : (durationMin(r.s,r.e)+' min')}</td>
-            <td><span class="badge ${cls}">${label}</span></td>
+            <td>${date}</td>
+            <td>${time}</td>
+            <td>${topic}</td>
+            <td>${attendee}</td>
+            <td>${dur}</td>
+            <td><span class="badge ${badgeClass}">${status}</span></td>
           `;
           tbody.appendChild(tr);
         });
 
-      document.getElementById('spinner1').style.display = 'none';
-      document.getElementById('spinner2').style.display = 'none';
-      banner("Data loaded.", true);
+      // UI done
+      document.getElementById('sp1').style.display = 'none';
+      const bar = document.getElementById('statusBar');
+      bar.className = "alert ok";
+      bar.textContent = "Data loaded.";
+      bar.style.display = 'block';
     }
 
-    // DOM ready + call loadData
-    (function () {
-      const ready = (fn) =>
-        (document.readyState !== "loading"
-          ? fn()
-          : document.addEventListener("DOMContentLoaded", fn));
-      ready(async function () {
-        if (!window.Chart) { banner("Chart.js failed to load — check the CDN tag.", false); return; }
-        const mc = document.getElementById("meetingsChart");
-        if (!mc) { banner("Canvas #meetingsChart not found — is the HTML intact?", false); return; }
-        // quick smoke test
-        try {
-          const t = new Chart(mc.getContext("2d"), {
-            type:"bar", data:{labels:["OK"],datasets:[{label:"Smoke",data:[1]}]},
-            options:{animation:false,plugins:{legend:{display:false}}}
-          });
-          setTimeout(()=>{ try { Chart.getChart(mc)?.destroy(); } catch{} }, 200);
-        } catch (e) { console.error(e); banner("Cannot draw on canvas.", false); return; }
-        try { await loadData(); } catch (e) { console.error(e); banner("loadData() threw an error.", false); }
+    // bootstrap
+    (function init(){
+      // quick check that user added their URL
+      if (!GAS_URL || GAS_URL.includes("PASTE_YOUR_DEPLOYMENT_ID_HERE")) {
+        const bar = document.getElementById('statusBar');
+        bar.className = "alert warn";
+        bar.textContent = "Add your Google Apps Script Web App URL in the code (GAS_URL).";
+        bar.style.display = 'block';
+        return;
+      }
+      console.log("Chart canvas OK — trying to load data…");
+      loadData().catch(err => {
+        console.error(err);
+        const bar = document.getElementById('statusBar');
+        bar.className = "alert warn";
+        bar.textContent = "Failed to load data. Open the console for details.";
+        bar.style.display = 'block';
       });
     })();
   </script>
