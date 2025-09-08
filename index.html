@@ -14,13 +14,16 @@
     }
     .dashboard{max-width:1400px;margin:0 auto;animation:fadeIn .5s ease-in}
     @keyframes fadeIn{from{opacity:0;transform:translateY(20px)}to{opacity:1;transform:translateY(0)}}
+
     .header,.card{background:rgba(255,255,255,.95);backdrop-filter:blur(10px);border-radius:20px;box-shadow:0 10px 40px rgba(0,0,0,.1)}
     .header{padding:30px;margin-bottom:16px}
     .header h1{font-size:32px;font-weight:800;color:#2d3748}
     .range{display:inline-flex;gap:8px;align-items:center;margin-top:10px;background:#f7fafc;color:#718096;border-radius:10px;padding:8px 14px;font-size:14px}
+
     .alert{margin:12px 0;padding:12px 14px;border-radius:12px;font-weight:600}
     .alert.ok{background:#def7ec;color:#03543f}
     .alert.warn{background:#fde8e8;color:#9b1c1c}
+
     .kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin:16px 0}
     .kpi .card{padding:22px}
     .kpi .label{font-size:12px;letter-spacing:.6px;color:#718096;text-transform:uppercase;margin-bottom:8px}
@@ -28,27 +31,33 @@
     .kpi .chip{display:inline-flex;align-items:center;gap:6px;padding:4px 10px;border-radius:999px;font-size:12px;font-weight:700;margin-top:8px}
     .chip.up{background:#c6f6d5;color:#22543d}
     .chip.down{background:#fee2e2;color:#7f1d1d}
+
     .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(480px,1fr));gap:16px;margin:16px 0}
     .card{padding:24px}
     .card h3{font-size:18px;font-weight:700;color:#2d3748;margin-bottom:14px}
     .chart{position:relative;height:320px}
+
     .table{margin-top:16px}
     table{width:100%;border-collapse:collapse}
     th,td{padding:14px;border-bottom:1px solid #e5e7eb;font-size:14px;color:#374151}
     th{text-align:left;background:#f7fafc;color:#4b5563;text-transform:uppercase;letter-spacing:.5px;font-size:12px}
+
     .badge{padding:4px 10px;border-radius:999px;font-weight:700;font-size:12px;display:inline-block}
-    .b-ok{background:#d1fae5;color:#065f46}
-    .b-warn{background:#fee2e2;color:#7f1d1d}
-    .b-info{background:#e0e7ff;color:#4338ca}
+    .b-ok{background:#d1fae5;color:#065f46}       /* Completed */
+    .b-info{background:#e0e7ff;color:#4338ca}     /* Scheduled */
+    .b-warn{background:#fee2e2;color:#7f1d1d}     /* No-Show */
+    .b-cancel{background:#fef3c7;color:#92400e}   /* Canceled */
+
     .spinner{display:inline-block;width:18px;height:18px;border:3px solid rgba(102,126,234,.3);border-radius:50%;border-top-color:#667eea;animation:spin 1s ease-in-out infinite;margin-left:8px}
     @keyframes spin{to{transform:rotate(360deg)}}
+
     @media (max-width:768px){.grid{grid-template-columns:1fr}}
   </style>
 </head>
 <body>
   <div class="dashboard">
     <div class="header">
-      <h1>📊 Meeting Analytics</h1>
+      <h1>📊 Shepherd Connect Analytics</h1>
       <div class="range">📅 Past 30 & Next 30 Days</div>
     </div>
 
@@ -116,29 +125,27 @@
     // ===========================
     // CONFIG
     // ===========================
-    // TODO: PASTE YOUR GOOGLE APPS SCRIPT WEB APP URL HERE
+    // 🔗 PASTE YOUR GOOGLE APPS SCRIPT WEB APP URL BETWEEN THE QUOTES:
     const GAS_URL = "https://script.google.com/a/macros/shepherdapp.com/s/AKfycbz7qVyJHTv6s1UP6-SgidFVbtSRxodLh1YRNwfYHjx0Q6Emd30O9S1dC_KLqLmYsz2Rxg/exec";
 
-    // Window to analyze
-    const LOOKBACK_DAYS = 30;   // past 30
-    const LOOKAHEAD_DAYS = 30;  // next 30
+    // Analysis window
+    const LOOKBACK_DAYS = 30;
+    const LOOKAHEAD_DAYS = 30;
 
     // ===========================
     // UTILITIES
     // ===========================
-    const toISO = (s) => {
-      if (!s) return null;
-      const d = new Date(s);
-      return isNaN(d) ? null : d.toISOString();
+    const boolish = (v) => {
+      const s = String(v ?? "").trim().toLowerCase();
+      return ["true","1","yes","y","checked"].includes(s);
     };
 
     const parseDate = (val) => {
-      if (!val) return null;
-      // handle Excel serial numbers
+      if (val === null || val === undefined || val === "") return null;
+      // Excel serial?
       if (/^\d{5}(\.\d+)?$/.test(String(val))) {
         const base = new Date(Date.UTC(1899, 11, 30));
-        const ms = Number(val) * 24 * 3600 * 1000;
-        return new Date(base.getTime() + ms);
+        return new Date(base.getTime() + Number(val) * 24 * 3600 * 1000);
       }
       const d = new Date(val);
       return isNaN(d) ? null : d;
@@ -154,33 +161,34 @@
     const fmtTime = (d) =>
       d.toLocaleTimeString(undefined, { hour: 'numeric', minute: '2-digit' });
 
+    const normKey = (s) => String(s).toLowerCase().replace(/\s|&|\/|\\|-/g,'_');
+
     const getField = (row, names, fallback="") => {
-      // names: array of possible keys (case-insensitive, underscores or spaces ok)
       const keys = Object.keys(row);
       for (const n of names) {
-        const needle = String(n).toLowerCase().replace(/\s|&|\/|\\|-/g,'_');
-        const hit = keys.find(k => k.toLowerCase().replace(/\s|&|\/|\\|-/g,'_') === needle);
+        const needle = normKey(n);
+        const hit = keys.find(k => normKey(k) === needle);
         if (hit && row[hit] != null && row[hit] !== "") return row[hit];
       }
       return fallback;
     };
 
-    const normStatus = (s) => {
-      s = String(s||"").toLowerCase();
-      if (!s) return "";
-      if (s.startsWith("cancel")) return "cancelled";
-      if (["no-show","no_show","noshow","no show"].includes(s)) return "no_show";
-      if (["completed","done","ended","finished"].includes(s)) return "completed";
-      if (["scheduled","booked","upcoming","confirmed"].includes(s)) return "scheduled";
-      return s;
+    const statusFrom = ({ start, end, rawStatus, canceledAt, cancelReason, noShowFlag }) => {
+      const s = String(rawStatus || "").toLowerCase();
+      if (noShowFlag) return "No-Show";
+      if ((cancelReason && /no\s*show/i.test(cancelReason))) return "No-Show";
+      if (s.startsWith("cancel")) return "Canceled";
+      if (canceledAt) return "Canceled";
+      if (end && end < new Date()) return "Completed";
+      return "Scheduled";
     };
 
-    // Topic field candidates — we’ll use Question 2 / Response 2 first
+    // Topic fields → Response 2 / Q2 first
     const TOPIC_FIELDS = [
-      "question_2_topic", "response_2", "question_2_response", "question2_response", "q2_response", "q2"
+      "question_2_topic","response_2","question_2_response","question2_response","q2_response","q2"
     ];
 
-    // Date field candidates (your sheet names included)
+    // Date fields (accept common variants & your sheet headers)
     const START_FIELDS = [
       "start_time","event_start_time","invitee_start_time","start",
       "start_date_time","start_date_&_time","start_date & time","Start Date & Time"
@@ -190,17 +198,25 @@
       "end_date_time","end_date_&_time","end_date & time","End Date & Time"
     ];
     const CREATED_FIELDS = [
-      "created_at","event_created_date_time","event_created_date_&_time","event created date & time"
+      "created_at","event_created_date_time","event_created_date_&_time","event created date & time","Event Created Date & Time"
     ];
     const CANCELLED_AT_FIELDS = [
-      "canceled_at","cancelled_at","cancellation_time","cancel_time","cancelled_date_time","canceled_date_time"
+      "canceled_at","cancelled_at","cancellation_time","cancel_time","cancelled_date_time","canceled_date_time","invitee_canceled_at"
     ];
+
+    // Distinct color palette for topic chart
+    const PALETTE = [
+      "#4e79a7","#f28e2b","#e15759","#76b7b2","#59a14f",
+      "#edc948","#b07aa1","#ff9da7","#9c755f","#bab0ab",
+      "#1f77b4","#ff7f0e","#2ca02c","#d62728","#9467bd",
+      "#8c564b","#e377c2","#7f7f7f","#bcbd22","#17becf"
+    ];
+
+    let charts = {};
 
     // ===========================
     // MAIN
     // ===========================
-    let charts = {};
-
     async function loadData() {
       document.getElementById('sp1').style.display = 'inline-block';
       document.getElementById('statusBar').style.display = 'none';
@@ -221,19 +237,11 @@
         const created = parseDate(createdRaw);
         const cancelledAt = parseDate(cancelledAtRaw);
 
-        const topic = (getField(r, TOPIC_FIELDS, "") || "").trim() || "Unspecified";
-        const status0 = normStatus(getField(r, ["status"], ""));
-        const cancelReason = (getField(r, ["cancel_reason","cancellation_reason","reason"], "") || "").toLowerCase();
-        const explicitNoShow = String(getField(r, ["no_show","noshow","is_no_show","marked_as_no_show"], "")).toLowerCase();
-
-        let status = status0;
-        let noShow = false;
-        if (explicitNoShow === "true" || explicitNoShow === "1" || explicitNoShow === "yes" || cancelReason.includes("no show") || cancelReason.includes("noshow")) {
-          noShow = true;
-          status = "no_show";
-        } else if (!status && cancelledAt) {
-          status = "cancelled";
-        }
+        const topic = (getField(r, TOPIC_FIELDS, "") || "").toString().trim() || "Unspecified";
+        const rawStatus = getField(r, ["status"], "");
+        const cancelReason = getField(r, ["cancel_reason","cancellation_reason","reason"], "");
+        const explicitNoShow = boolish(getField(r, ["no_show","noshow","is_no_show","marked_as_no_show"], ""));
+        const statusLabel = statusFrom({ start, end, rawStatus, canceledAt: cancelledAt, cancelReason, noShowFlag: explicitNoShow });
 
         const attendee = getField(r, ["attendee_name","invitee_name","name","full_name"]);
         const attendeeEmail = getField(r, ["attendee_email","invitee_email","email"]);
@@ -243,17 +251,16 @@
         return {
           event_uuid: eventUUID,
           start, end, created, cancelledAt,
-          topic, status, noShow,
+          topic, statusLabel,
           attendee, attendeeEmail, eventType,
           durationMin: minutesBetween(start, end)
         };
       });
 
-      // Filter to window: past 30 + next 30 by START time
+      // Filter to window by start time
       const now = new Date();
       const from = new Date(now); from.setDate(from.getDate()-LOOKBACK_DAYS);
       const to   = new Date(now); to.setDate(to.getDate()+LOOKAHEAD_DAYS);
-
       const inWindow = rows.filter(r => r.start && r.start >= from && r.start <= to);
 
       // === KPIs ===
@@ -261,8 +268,7 @@
       const totalMinutes = inWindow.reduce((acc, r) => acc + r.durationMin, 0);
       const totalHours = Math.round(totalMinutes/60);
       const avgDuration = total ? Math.round(totalMinutes/total) : 0;
-      const noShowCount = inWindow.filter(r => r.status === "no_show").length;
-      const cancelledCount = inWindow.filter(r => r.status === "cancelled").length;
+      const noShowCount = inWindow.filter(r => r.statusLabel === "No-Show").length;
 
       document.getElementById('kpiTotal').textContent = total;
       document.getElementById('kpiHours').textContent = totalHours;
@@ -270,41 +276,34 @@
       document.getElementById('kpiNoShow').textContent = `${Math.round((noShowCount/Math.max(1,total))*100)}%`;
 
       // === Over Time (line) ===
-      const days = [];
-      const completedSeries = [];
-      const cancelledSeries = [];
-
-      // build per day buckets (inclusive range)
-      const dayCursor = new Date(from);
-      dayCursor.setHours(0,0,0,0);
+      const days = [], completedSeries = [], cancelledSeries = [];
+      const dayCursor = new Date(from); dayCursor.setHours(0,0,0,0);
       while (dayCursor <= to) {
         const d0 = new Date(dayCursor);
         const label = d0.toLocaleDateString(undefined,{month:'short', day:'numeric'});
         days.push(label);
         const sameDay = inWindow.filter(r => r.start && r.start.toDateString() === d0.toDateString());
-        completedSeries.push(sameDay.filter(r => r.status !== "cancelled" && r.status !== "no_show").length);
-        cancelledSeries.push(sameDay.filter(r => r.status === "cancelled" || r.status === "no_show").length);
+        completedSeries.push(sameDay.filter(r => r.statusLabel === "Completed" || r.statusLabel === "Scheduled").length);
+        cancelledSeries.push(sameDay.filter(r => r.statusLabel === "Canceled" || r.statusLabel === "No-Show").length);
         dayCursor.setDate(dayCursor.getDate()+1);
       }
 
       // === Topics (donut) ===
       const topicCounts = {};
-      inWindow.forEach(r => {
-        topicCounts[r.topic] = (topicCounts[r.topic] || 0) + 1;
-      });
+      inWindow.forEach(r => { topicCounts[r.topic] = (topicCounts[r.topic] || 0) + 1; });
       const topicLabels = Object.keys(topicCounts);
       const topicData = topicLabels.map(k => topicCounts[k]);
+      const topicColors = topicLabels.map((_, i) => PALETTE[i % PALETTE.length]);
 
       // === Slots (bar) ===
       const slotBuckets = ["7 AM","8 AM","9 AM","10 AM","11 AM","12 PM","1 PM","2 PM","3 PM","4 PM","5 PM"];
       const slotValues = slotBuckets.map(() => 0);
       inWindow.forEach(r => {
         if (!r.start) return;
-        let h = r.start.getHours();
-        let label = "";
+        const h = r.start.getHours();
         const hour12 = ((h+11)%12)+1;
         const ampm = h<12 ? "AM":"PM";
-        label = `${hour12} ${ampm}`;
+        const label = `${hour12} ${ampm}`;
         const idx = slotBuckets.indexOf(label);
         if (idx >= 0) slotValues[idx] += 1;
       });
@@ -319,7 +318,6 @@
       });
 
       // === Render charts ===
-      // cleanup old instances if hot-reloading
       for (const k in charts){ try{ charts[k].destroy(); }catch(e){} }
 
       charts.time = new Chart(document.getElementById('timeChart'), {
@@ -328,14 +326,14 @@
           labels: days,
           datasets: [
             {
-              label: 'Completed',
+              label: 'Completed/Scheduled',
               data: completedSeries,
               borderColor: '#667eea',
               backgroundColor: 'rgba(102,126,234,0.12)',
               tension: 0.35, fill: true, pointRadius: 2
             },
             {
-              label: 'Cancelled/No-show',
+              label: 'Canceled/No-Show',
               data: cancelledSeries,
               borderColor: '#fb7185',
               backgroundColor: 'rgba(251,113,133,0.12)',
@@ -352,7 +350,7 @@
 
       charts.topic = new Chart(document.getElementById('topicChart'), {
         type: 'doughnut',
-        data: { labels: topicLabels, datasets: [{ data: topicData, borderWidth: 0 }] },
+        data: { labels: topicLabels, datasets: [{ data: topicData, backgroundColor: topicColors, borderWidth: 0 }] },
         options: { responsive:true, maintainAspectRatio:false, plugins:{ legend:{ position:'right' } } }
       });
 
@@ -368,7 +366,7 @@
         options:{ responsive:true, maintainAspectRatio:false, plugins:{legend:{display:false}} }
       });
 
-      // === Recent table (latest 50 by start desc) ===
+      // === Recent table ===
       const tbody = document.querySelector('#tbl tbody');
       tbody.innerHTML = "";
       inWindow
@@ -382,8 +380,11 @@
           const topic = r.topic || "Unspecified";
           const attendee = r.attendee || "";
           const dur = `${r.durationMin} min`;
-          const status = r.status === "no_show" ? "No Show" : (r.status || "Scheduled");
-          const badgeClass = r.status === "no_show" ? "b-warn" : (r.status === "cancelled" ? "b-info" : "b-ok");
+          const status = r.statusLabel;
+          const badgeClass =
+            status === "No-Show"  ? "b-warn" :
+            status === "Canceled" ? "b-cancel" :
+            status === "Completed"? "b-ok" : "b-info";
           tr.innerHTML = `
             <td>${date}</td>
             <td>${time}</td>
@@ -395,7 +396,7 @@
           tbody.appendChild(tr);
         });
 
-      // UI done
+      // Done
       document.getElementById('sp1').style.display = 'none';
       const bar = document.getElementById('statusBar');
       bar.className = "alert ok";
@@ -405,7 +406,6 @@
 
     // bootstrap
     (function init(){
-      // quick check that user added their URL
       if (!GAS_URL || GAS_URL.includes("PASTE_YOUR_DEPLOYMENT_ID_HERE")) {
         const bar = document.getElementById('statusBar');
         bar.className = "alert warn";
@@ -413,7 +413,6 @@
         bar.style.display = 'block';
         return;
       }
-      console.log("Chart canvas OK — trying to load data…");
       loadData().catch(err => {
         console.error(err);
         const bar = document.getElementById('statusBar');
