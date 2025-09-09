@@ -1,45 +1,45 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8"/>
-<meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>Meeting Analytics Dashboard</title>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
-<style>
-  :root{--bg1:#667eea;--bg2:#764ba2;--text:#2d3748;--muted:#718096}
-  *{box-sizing:border-box;margin:0;padding:0}
-  body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:linear-gradient(135deg,var(--bg1),var(--bg2));min-height:100vh;padding:20px;color:var(--text)}
-  .container{max-width:1200px;margin:0 auto}
-  .card{background:#fff;opacity:.96;border-radius:18px;box-shadow:0 10px 40px rgba(0,0,0,.12);padding:22px}
-  header.card{margin-bottom:18px}
-  h1{font-size:28px;margin-bottom:6px}
-  .sub{color:var(--muted);font-size:14px}
-  .grid{display:grid;gap:16px}
-  .grid.stats{grid-template-columns:repeat(auto-fit,minmax(220px,1fr));margin:16px 0}
-  .stat .label{color:var(--muted);text-transform:uppercase;font-weight:600;font-size:12px;margin-bottom:8px}
-  .stat .val{font-size:34px;font-weight:800}
-  .badge{display:inline-block;padding:4px 10px;border-radius:999px;font-weight:700;font-size:12px}
-  .ok{background:#e6fffa;color:#035d56}
-  .warn{background:#fed7d7;color:#742a2a}
-  .notice{background:#c6f6d5;color:#22543d}
-  .chart{height:320px}
-  table{width:100%;border-collapse:collapse}
-  th,td{padding:12px;border-bottom:1px solid #e2e8f0;font-size:14px}
-  th{background:#f7fafc;text-align:left;color:#4a5568;letter-spacing:.02em}
-  .spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(102,126,234,.35);border-top-color:#667eea;border-radius:50%;animation:spin 1s linear infinite;vertical-align:-2px}
-  @keyframes spin{to{transform:rotate(360deg)}}
-  .k{color:#4a5568;font-size:13px}
-  .badge.scheduled{background:#ebf8ff;color:#2b6cb0}
-  .badge.completed{background:#c6f6d5;color:#22543d}
-  .badge.canceled{background:#fed7d7;color:#742a2a}
-  .badge.noshow{background:#ffe9b3;color:#6b4f00}
-</style>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Meeting Analytics Dashboard</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+  <style>
+    :root{--bg1:#667eea;--bg2:#764ba2;--text:#2d3748;--muted:#718096}
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;background:linear-gradient(135deg,var(--bg1),var(--bg2));min-height:100vh;padding:20px;color:var(--text)}
+    .container{max-width:1200px;margin:0 auto}
+    .card{background:#fff;opacity:.96;border-radius:18px;box-shadow:0 10px 40px rgba(0,0,0,.12);padding:22px}
+    header.card{margin-bottom:18px}
+    h1{font-size:28px;margin-bottom:6px}
+    .sub{color:var(--muted);font-size:14px}
+    .grid{display:grid;gap:16px}
+    .grid.stats{grid-template-columns:repeat(auto-fit,minmax(220px,1fr));margin:16px 0}
+    .stat .label{color:var(--muted);text-transform:uppercase;font-weight:600;font-size:12px;margin-bottom:8px}
+    .stat .val{font-size:34px;font-weight:800}
+    .badge{display:inline-block;padding:4px 10px;border-radius:999px;font-weight:700;font-size:12px}
+    .ok{background:#e6fffa;color:#035d56}
+    .warn{background:#fed7d7;color:#742a2a}
+    .notice{background:#c6f6d5;color:#22543d}
+    .chart{height:320px}
+    table{width:100%;border-collapse:collapse}
+    th,td{padding:12px;border-bottom:1px solid #e2e8f0;font-size:14px}
+    th{background:#f7fafc;text-align:left;color:#4a5568;letter-spacing:.02em}
+    .spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(102,126,234,.35);border-top-color:#667eea;border-radius:50%;animation:spin 1s linear infinite;vertical-align:-2px}
+    @keyframes spin{to{transform:rotate(360deg)}}
+    .k{color:#4a5568;font-size:13px}
+    .badge.scheduled{background:#ebf8ff;color:#2b6cb0}
+    .badge.completed{background:#c6f6d5;color:#22543d}
+    .badge.canceled{background:#fed7d7;color:#742a2a}
+    .badge.noshow{background:#ffe9b3;color:#6b4f00}
+  </style>
 </head>
 <body>
 <div class="container">
   <header class="card">
     <h1>📊 Meeting Analytics</h1>
-    <div class="sub">Past 30 & next 30 days</div>
+    <div class="sub">Past 30 &amp; next 30 days</div>
     <div id="alert" class="k" style="margin-top:6px"></div>
   </header>
 
@@ -72,10 +72,38 @@
 </div>
 
 <script>
-  // === REQUIRED: paste your /exec URL here ===
-  const GAS_URL = "https://script.google.com/macros/s/AKfycbzPH58R_gcBRMjKwIFMPhpe1tgMuN-2DAb-J-njOyAd9cbnpxtYAVd1WpRJq856fLZxBw/exec";
+  // ===== REQUIRED: paste your /exec URL here =====
+  const GAS_URL = "PASTE_YOUR_APPS_SCRIPT_EXEC_URL_HERE";
 
-  // JSON first; if CORS blocks, use JSONP
+  // ===== helpers: status & formatting
+  const parseISO = s => s ? new Date(s) : null;
+  const df = (d, opts) => d ? d.toLocaleDateString(undefined, opts || {month:'short', day:'numeric', year:'numeric'}) : '';
+  const tf = d => d ? d.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'}) : '';
+  const fmtMin = m => `${m}m`;
+  const alertEl = document.getElementById('alert');
+  function msg(s, cls='notice'){ alertEl.innerHTML = `<span class="badge ${cls}">${s}</span>`; }
+
+  function getField(row, names){
+    for(const k of names){ if(row[k] !== undefined && row[k] !== null && String(row[k]).trim() !== '') return row[k]; }
+    return '';
+  }
+
+  function computeStatus(row){
+    const status = (String(getField(row,['status','meeting_status'])).toLowerCase());
+    const canceledAt = getField(row,['canceled_at']);
+    const noShow = /no[\s-]?show/i.test(getField(row,['no_show','status_notes','notes']));
+    if(noShow) return 'No-Show';
+    if(canceledAt || status==='canceled' || status==='cancelled') return 'Canceled';
+    if(status==='completed' || status==='done') return 'Completed';
+    return 'Scheduled';
+  }
+
+  function statusBadge(s){
+    const cls = s==='Completed' ? 'completed' : s==='Canceled' ? 'canceled' : s==='No-Show' ? 'noshow' : 'scheduled';
+    return `<span class="badge ${cls}">${s}</span>`;
+  }
+
+  // ===== CORS-safe fetch: JSON first, JSONP fallback
   async function fetchJSONOrJSONP(url){
     try{
       const r = await fetch(url, {cache:'no-store'});
@@ -94,17 +122,7 @@
     }
   }
 
-  // Utils
-  const parseISO = s => s ? new Date(s) : null;
-  const df = (d, opts) => d ? d.toLocaleDateString(undefined, opts || {month:'short', day:'numeric', year:'numeric'}) : '';
-  const tf = d => d ? d.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'}) : '';
-  const fmtMin = m => `${m}m`;
-
-  function getField(row, names){
-    for(const k of names){ if(row[k] !== undefined && row[k] !== null && String(row[k]).trim() !== '') return row[k]; }
-    return '';
-  }
-
+  // ===== Zoom ID extraction & enrichment
   function zoomIdFromText(txt){
     if(!txt) return null;
     const s = String(txt).replace(/^Zoom URL:\s*/i,'').replace(/^['"]|['"]$/g,'').trim();
@@ -115,24 +133,10 @@
     return null;
   }
 
-  function computeStatus(row){
-    const status = (String(getField(row,['status','meeting_status'])).toLowerCase());
-    const canceledAt = getField(row,['canceled_at']);
-    const noShow = /no[\s-]?show/i.test(getField(row,['no_show','status_notes','notes']));
-    if(noShow) return 'No-Show';
-    if(canceledAt || status==='canceled' || status==='cancelled') return 'Canceled';
-    if(status==='completed' || status==='done') return 'Completed';
-    return 'Scheduled';
-  }
-
-  function statusBadge(s){
-    const cls = s==='Completed' ? 'completed' : s==='Canceled' ? 'canceled' : s==='No-Show' ? 'noshow' : 'scheduled';
-    return `<span class="badge ${cls}">${s}</span>`;
-  }
-
+  // ===== Charts
   let lineChart, topicChart;
   function renderCharts(series, topics){
-    // Line chart
+    // Meetings over time
     const labels = series.map(d=>d.label);
     const completed = series.map(d=>d.completed);
     const cancelled = series.map(d=>d.cancelled);
@@ -140,10 +144,10 @@
     if(lineChart) lineChart.destroy();
     lineChart = new Chart(ctx1,{ type:'line', data:{ labels, datasets:[
       {label:'Completed', data:completed, tension:.35, fill:false},
-      {label:'Cancelled', data:cancelled, tension:.35, fill:false},
+      {label:'Cancelled', data:cancelled, tension:.35, fill:false}
     ]}, options:{responsive:true, maintainAspectRatio:false}});
 
-    // Topic chart
+    // Topic distribution
     const tlabels = Object.keys(topics);
     const tdata = tlabels.map(k=>topics[k]);
     const colors = ['#3b82f6','#ef4444','#f59e0b','#10b981','#8b5cf6','#64748b','#06b6d4','#84cc16','#f97316','#a855f7','#22c55e','#e11d48'];
@@ -152,19 +156,23 @@
     topicChart = new Chart(ctx2,{ type:'doughnut', data:{ labels:tlabels, datasets:[{ data:tdata, backgroundColor:tlabels.map((_,i)=>colors[i%colors.length]) }]}, options:{responsive:true, maintainAspectRatio:false, cutout:'60%'}});
   }
 
+  // ===== Main load
   (async function load(){
-    const alert = document.getElementById('alert');
-    const zoomStatus = document.getElementById('zoomStatus');
     if(!GAS_URL || GAS_URL.includes('https://script.google.com/macros/s/AKfycbzPH58R_gcBRMjKwIFMPhpe1tgMuN-2DAb-J-njOyAd9cbnpxtYAVd1WpRJq856fLZxBw/exec')){
-      alert.innerHTML = `<span class="badge warn">Add your Google Apps Script Web App URL (GAS_URL).</span>`;
+      msg('Add your Google Apps Script Web App URL (GAS_URL).','warn');
       return;
     }
 
     try{
-      alert.innerHTML = `<span class="badge notice">Loading data…</span>`;
+      msg('Loading data…','notice');
       const data = await fetchJSONOrJSONP(GAS_URL);
-      const items = data.items || [];
+      const items = data && Array.isArray(data.items) ? data.items : [];
+      if(items.length === 0){
+        msg('No rows returned. Check your sheet/tab name and header row.','warn');
+        return;
+      }
 
+      // Normalize
       const now = new Date();
       const startBound = new Date(now); startBound.setDate(startBound.getDate()-30);
       const endBound   = new Date(now); endBound.setDate(endBound.getDate()+30);
@@ -191,5 +199,78 @@
       const noShows = rows.filter(r=>r.status==='No-Show').length;
       document.getElementById('k_total').textContent = total;
       document.getElementById('k_hours').textContent = (totalMin/60).toFixed(0);
-      document.getElement
-        </script>
+      document.getElementById('k_avg').textContent = fmtMin(avg);
+      document.getElementById('k_noshow').textContent = total ? `${Math.round((noShows/total)*100)}%` : '0%';
+
+      // Series (by day)
+      const byDay = new Map();
+      rows.forEach(r=>{
+        const key = r.start ? r.start.toISOString().slice(0,10) : '';
+        if(!key) return;
+        if(!byDay.has(key)) byDay.set(key,{completed:0,cancelled:0});
+        if(r.status==='Canceled') byDay.get(key).cancelled++;
+        else byDay.get(key).completed++;
+      });
+      const series = Array.from(byDay.entries())
+        .sort((a,b)=>a[0]<b[0]?-1:1)
+        .map(([k,v])=>({label:new Date(k).toLocaleDateString(undefined,{month:'short',day:'numeric'}), ...v}));
+
+      // Topics
+      const topicCounts = {};
+      rows.forEach(r=>{ topicCounts[r.topic]=(topicCounts[r.topic]||0)+1; });
+
+      renderCharts(series, topicCounts);
+
+      // Zoom enrichment
+      const zoomStatus = document.getElementById('zoomStatus');
+      zoomStatus.innerHTML = `<span class="spinner"></span> Resolving Zoom durations…`;
+      const zoomIdSet = new Set(rows.map(r=>r.zoomId).filter(Boolean));
+      const ids = Array.from(zoomIdSet);
+      const zoomMap = {};
+      const CHUNK = 25;
+
+      async function fetchZoomBatch(batch){
+        const q = encodeURIComponent(batch.join(','));
+        const url = `${GAS_URL}?zoom=1&ids=${q}`;
+        const zres = await fetchJSONOrJSONP(url);
+        (zres.meetings || []).forEach(m=>{
+          if(m.id) zoomMap[m.id]=m;
+          if(m.vanity) zoomMap[`vanity:${m.vanity}`]=m;
+        });
+      }
+
+      for(let i=0;i<ids.length;i+=CHUNK){
+        await fetchZoomBatch(ids.slice(i,i+CHUNK));
+      }
+      zoomStatus.textContent = `Zoom lookups: ${Object.keys(zoomMap).length}/${ids.length}`;
+
+      // Render table
+      const tbody = document.getElementById('rows');
+      tbody.innerHTML = rows
+        .sort((a,b)=>(b.start?.getTime()||0)-(a.start?.getTime()||0))
+        .slice(0,100)
+        .map(r=>{
+          const z = r.zoomId ? (zoomMap[r.zoomId]||null) : null;
+          const zoomCol = z ? `${(z.duration_min||'')}m` : (r.zoomId ? '—' : '');
+          const d = r.start ? df(r.start) : '';
+          const t = r.start ? tf(r.start) : '';
+          return `<tr>
+            <td>${d}</td>
+            <td>${t}</td>
+            <td>${r.topic}</td>
+            <td>${r.attendee||''}</td>
+            <td>${fmtMin(r.durMin)}</td>
+            <td>${statusBadge(r.status)}</td>
+            <td>${zoomCol}</td>
+          </tr>`;
+        }).join('');
+
+      msg('Data loaded.','ok');
+    }catch(err){
+      console.error(err);
+      msg('Load error: ' + String(err && err.message || err),'warn');
+    }
+  })();
+</script>
+</body>
+</html>
