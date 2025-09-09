@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>Shepherd Connect Analytics Dashboard</title>
+  <title>Meeting Analytics Dashboard</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
   <style>
     :root{
@@ -94,7 +94,7 @@
 
   <script>
     // 1) ADD YOUR APPS SCRIPT URL HERE (must end with /exec)
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbz7qVyJHTv6s1UP6-SgidFVbtSRxodLh1YRNwfYHjx0Q6Emd30O9S1dC_KLqLmYsz2Rxg/exec";
+    const GAS_URL = "https://script.google.com/macros/s/AKfycbzPH58R_gcBRMjKwIFMPhpe1tgMuN-2DAb-J-njOyAd9cbnpxtYAVd1WpRJq856fLZxBw/exec";
 
     // -------- utilities
     const fmtMin = m => `${m}m`;
@@ -192,7 +192,7 @@
       const alert = document.getElementById('alert');
       const zoomStatus = document.getElementById('zoomStatus');
       try{
-        if(!GAS_URL || GAS_URL.includes('https://script.google.com/macros/s/AKfycbz7qVyJHTv6s1UP6-SgidFVbtSRxodLh1YRNwfYHjx0Q6Emd30O9S1dC_KLqLmYsz2Rxg/exec')){
+        if(!GAS_URL || GAS_URL.includes('YOUR_APPS_SCRIPT_EXEC_URL_HERE')){
           alert.innerHTML = `<div class="badge warn">Add your Google Apps Script Web App URL (GAS_URL).</div>`;
           return;
         }
