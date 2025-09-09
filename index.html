@@ -72,7 +72,7 @@
 </div>
 
 <script>
-  // ===== YOUR GAS URL =====
+  // ===== Paste your GAS Web App URL here =====
   const GAS_URL = "https://script.google.com/macros/s/AKfycbxOPvOTcWmzJ3s0D5pK5vvOeLoN6dlbUGT6ShXMmFVk-ZfTEBqxgIvXEN-n7KOJuOv5dA/exec";
 
   // ===== helpers =====
@@ -87,7 +87,6 @@
     for(const k of names){ if(row[k] !== undefined && row[k] !== null && String(row[k]).trim() !== '') return row[k]; }
     return '';
   }
-
   function computeStatus(row){
     const statusRaw = String(getField(row,['status','meeting_status'])).toLowerCase();
     const canceledAt = getField(row,['canceled_at']);
@@ -102,18 +101,20 @@
     return `<span class="badge ${cls}">${s}</span>`;
   }
 
-  // zoom id extraction
+  // Zoom ID extraction (expanded)
   function zoomIdFromText(txt){
     if(!txt) return null;
     const s = String(txt).replace(/^Zoom URL:\s*/i,'').replace(/^['"]|['"]$/g,'').trim();
-    const mNum = s.match(/zoom\.us\/(?:j|wc)\/(\d{7,})/i);
-    if(mNum) return mNum[1];
-    const mVanity = s.match(/zoom\.us\/my\/([a-z0-9._-]+)/i);
-    if(mVanity) return `vanity:${mVanity[1]}`;
+    // /j/<id>, /wc/<id>, /wc/join/<id>, /s/<encrypted> (ignore /s/)
+    const m1 = s.match(/zoom\.us\/j\/(\d{7,})/i);
+    if (m1) return m1[1];
+    const m2 = s.match(/zoom\.us\/wc\/(?:join\/)?(\d{7,})/i);
+    if (m2) return m2[1];
+    const m3 = s.match(/zoom\.us\/my\/([a-z0-9._-]+)/i);
+    if (m3) return `vanity:${m3[1]}`;
     return null;
   }
 
-  // topic colors (stable)
   const TOPIC_COLORS = {
     'Invoices':'#3b82f6','Forms':'#ef4444','Other':'#f59e0b','Reporting':'#fbbf24',
     'Inventory':'#10b981','Messaging/Client Communications':'#8b5cf6','SOAP':'#9ca3af',
@@ -121,7 +122,6 @@
     'Unspecified':'#6366f1'
   };
 
-  // CORS-safe fetch (JSON, then JSONP fallback)
   async function fetchJSONOrJSONP(url){
     try{
       const r = await fetch(url, {cache:'no-store'});
@@ -140,10 +140,8 @@
     }
   }
 
-  // charts
   let lineChart, topicChart;
   function renderCharts(series, topics){
-    // line
     const labels = series.map(d=>d.label);
     const completed = series.map(d=>d.completed);
     const cancelled = series.map(d=>d.cancelled);
@@ -153,8 +151,6 @@
       {label:'Completed', data:completed, tension:.35, fill:false},
       {label:'Cancelled', data:cancelled, tension:.35, fill:false}
     ]}, options:{responsive:true, maintainAspectRatio:false}});
-
-    // doughnut
     const tlabels = Object.keys(topics);
     const tdata = tlabels.map(k=>topics[k]);
     const colors = tlabels.map(l=>TOPIC_COLORS[l] || '#6366f1');
@@ -163,11 +159,8 @@
     topicChart = new Chart(ctx2,{ type:'doughnut', data:{ labels:tlabels, datasets:[{ data:tdata, backgroundColor:colors }]}, options:{responsive:true, maintainAspectRatio:false, cutout:'60%'}});
   }
 
-  // main
   (async function load(){
-    if(!GAS_URL || GAS_URL.includes('PASTE_YOUR_APPS_SCRIPT_EXEC_URL_HERE')){
-      msg('Add your Google Apps Script Web App URL (GAS_URL).','warn'); return;
-    }
+    if(!GAS_URL || GAS_URL.includes('PASTE_YOUR_APPS_SCRIPT_EXEC_URL_HERE')){ msg('Add your Google Apps Script Web App URL (GAS_URL).','warn'); return; }
     try{
       msg('Loading data…','notice');
       const data = await fetchJSONOrJSONP(GAS_URL);
@@ -183,19 +176,50 @@
         const end   = parseISO(getField(r,['end_time','End Date & Time','end','end_date_time','End']));
         const topic = getField(r,['question_2_topic','Question 2 Response','Response 2','meeting_topic']) || 'Unspecified';
         const attendee = getField(r,['attendee_name','invitee_name','name','Attendee']);
-        const durMin = (()=> {
+        const durMinSheet = (()=> {
           const v = getField(r,['duration_min','duration','length_min']);
           const n = Number(v); return isFinite(n) && n>0 ? n : (start&&end ? Math.round((end-start)/60000) : 0);
         })();
         const status = computeStatus(r);
         const ztxt = getField(r,['zoom_url','zoom_join_url','zoom_link','zoom_uri','location','notes','description']);
         const zoomId = zoomIdFromText(ztxt);
-        return { raw:r, start, end, topic, attendee, durMin, status, zoomId };
+        return { raw:r, start, end, topic, attendee, durMinSheet, status, zoomId };
       }).filter(r=>!r.start || (r.start>=startBound && r.start<=endBound));
 
-      // KPIs
+      // Make a unique list of Zoom IDs
+      const zoomIdSet = new Set(rows.map(r=>r.zoomId).filter(Boolean));
+      const ids = Array.from(zoomIdSet);
+
+      // Zoom enrichment
+      const zoomStatus = document.getElementById('zoomStatus');
+      const zoomMap = {};
+      if(ids.length){
+        zoomStatus.innerHTML = `<span class="spinner"></span> Resolving Zoom durations…`;
+        const CHUNK = 25;
+        for(let i=0;i<ids.length;i+=CHUNK){
+          const batch = ids.slice(i,i+CHUNK);
+          const zres = await fetchJSONOrJSONP(`${GAS_URL}?zoom=1&ids=${batch.join(',')}`);
+          (zres.meetings || []).forEach(m=>{
+            if(m.id) zoomMap[m.id]=m;
+            if(m.vanity) zoomMap[`vanity:${m.vanity}`]=m;
+          });
+          const haveDur = Object.values(zoomMap).filter(m=>Number(m.duration_min)>0).length;
+          zoomStatus.textContent = `Zoom lookups: ${haveDur}/${ids.length}`;
+        }
+      } else {
+        zoomStatus.textContent = 'Zoom lookups: 0/0';
+      }
+
+      // Compute final durations (prefer Zoom actual)
+      rows.forEach(r=>{
+        const zm = r.zoomId ? zoomMap[r.zoomId] : null;
+        const zmin = zm && Number(zm.duration_min) > 0 ? Number(zm.duration_min) : NaN;
+        r.finalDur = isFinite(zmin) ? zmin : r.durMinSheet;
+      });
+
+      // KPIs (use finalDur)
       const total = rows.length;
-      const totalMin = rows.reduce((a,b)=>a+b.durMin,0);
+      const totalMin = rows.reduce((a,b)=>a+(b.finalDur||0),0);
       const avg = total ? Math.round(totalMin/total) : 0;
       const noShows = rows.filter(r=>r.status==='No-Show').length;
       document.getElementById('k_total').textContent = total;
@@ -203,65 +227,38 @@
       document.getElementById('k_avg').textContent = fmtMin(avg);
       document.getElementById('k_noshow').textContent = total ? `${Math.round((noShows/total)*100)}%` : '0%';
 
-      // series & topics
+      // Charts
       const byDay = new Map();
       rows.forEach(r=>{
         const key = r.start ? r.start.toISOString().slice(0,10) : '';
         if(!key) return;
         if(!byDay.has(key)) byDay.set(key,{completed:0,cancelled:0});
-        if(r.status==='Canceled') byDay.get(key).cancelled++;
-        else byDay.get(key).completed++;
+        if(r.status==='Canceled') byDay.get(key).cancelled++; else byDay.get(key).completed++;
       });
       const series = Array.from(byDay.entries())
         .sort((a,b)=>a[0]<b[0]?-1:1)
         .map(([k,v])=>({label:new Date(k).toLocaleDateString(undefined,{month:'short',day:'numeric'}), ...v}));
-      const topicCounts = {};
-      rows.forEach(r=>{ topicCounts[r.topic]=(topicCounts[r.topic]||0)+1; });
+      const topicCounts = {}; rows.forEach(r=>{ topicCounts[r.topic]=(topicCounts[r.topic]||0)+1; });
       renderCharts(series, topicCounts);
 
-      // Zoom enrichment
-      const zoomStatus = document.getElementById('zoomStatus');
-      const zoomIdSet = new Set(rows.map(r=>r.zoomId).filter(Boolean));
-      const ids = Array.from(zoomIdSet);
-      if(ids.length===0){ zoomStatus.textContent = 'Zoom lookups: 0/0'; }
-      else {
-        zoomStatus.innerHTML = `<span class="spinner"></span> Resolving Zoom durations…`;
-        const zoomMap = {};
-        const CHUNK = 25;
-        async function fetchZoomBatch(batch){
-          const url = `${GAS_URL}?zoom=1&ids=${batch.join(',')}`; // no encoding; backend decodes
-          const zres = await fetchJSONOrJSONP(url);
-          (zres.meetings || []).forEach(m=>{
-            if(m.id) zoomMap[m.id]=m;
-            if(m.vanity) zoomMap[`vanity:${m.vanity}`]=m;
-          });
-          zoomStatus.textContent = `Zoom lookups: ${Object.keys(zoomMap).length}/${ids.length}`;
-        }
-        for(let i=0;i<ids.length;i+=CHUNK){
-          await fetchZoomBatch(ids.slice(i,i+CHUNK));
-        }
-
-        // Table
-        const tbody = document.getElementById('rows');
-        tbody.innerHTML = rows
-          .sort((a,b)=>(b.start?.getTime()||0)-(a.start?.getTime()||0))
-          .slice(0,100)
-          .map(r=>{
-            const z = r.zoomId ? (zoomMap[r.zoomId]||null) : null;
-            const zoomCol = z ? `${(z.duration_min||'')}m` : (r.zoomId ? '—' : '');
-            const d = r.start ? df(r.start) : '';
-            const t = r.start ? tf(r.start) : '';
-            return `<tr>
-              <td>${d}</td>
-              <td>${t}</td>
-              <td>${r.topic}</td>
-              <td>${r.attendee||''}</td>
-              <td>${fmtMin(r.durMin)}</td>
-              <td>${statusBadge(r.status)}</td>
-              <td>${zoomCol}</td>
-            </tr>`;
-          }).join('');
-      }
+      // Table (show both final and zoom column)
+      const tbody = document.getElementById('rows');
+      tbody.innerHTML = rows
+        .sort((a,b)=>(b.start?.getTime()||0)-(a.start?.getTime()||0))
+        .slice(0,100)
+        .map(r=>{
+          const zm = r.zoomId ? zoomMap[r.zoomId] : null;
+          const zoomCol = zm && Number(zm.duration_min)>0 ? `${zm.duration_min}m` : (r.zoomId ? '—' : '');
+          const d = r.start ? df(r.start) : '', t = r.start ? tf(r.start) : '';
+          return `<tr>
+            <td>${d}</td><td>${t}</td>
+            <td>${r.topic}</td>
+            <td>${r.attendee||''}</td>
+            <td>${fmtMin(r.finalDur)}</td>
+            <td>${statusBadge(r.status)}</td>
+            <td>${zoomCol}</td>
+          </tr>`;
+        }).join('');
 
       msg('Data loaded.','ok');
     }catch(err){
