@@ -304,7 +304,7 @@
     }
 
     (function init(){
-      if (!GAS_URL || GAS_URL.includes("https://script.google.com/a/macros/shepherdapp.com/s/AKfycbz7qVyJHTv6s1UP6-SgidFVbtSRxodLh1YRNwfYHjx0Q6Emd30O9S1dC_KLqLmYsz2Rxg/exec")){
+      if (!GAS_URL || GAS_URL.includes("https://script.google.com/macros/s/AKfycbz7qVyJHTv6s1UP6-SgidFVbtSRxodLh1YRNwfYHjx0Q6Emd30O9S1dC_KLqLmYsz2Rxg/exec")){
         const bar=document.getElementById('statusBar'); bar.className="alert warn"; bar.textContent="Add your Google Apps Script Web App URL (GAS_URL)."; bar.style.display='block'; return;
       }
       loadData().catch(e=>{
