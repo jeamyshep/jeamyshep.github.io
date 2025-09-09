@@ -1,316 +1,308 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8"/>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>Shepherd Connect Meeting Analytics Dashboard</title>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>Shepherd Connect Analytics Dashboard</title>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
   <style>
-    *{margin:0;padding:0;box-sizing:border-box}
-    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI','Roboto','Helvetica','Arial',sans-serif;background:linear-gradient(135deg,#667eea 0%,#764ba2 100%);min-height:100vh;padding:20px;color:#1f2937}
-    .dashboard{max-width:1400px;margin:0 auto}
-    .header,.card{background:rgba(255,255,255,.95);backdrop-filter:blur(10px);border-radius:20px;box-shadow:0 10px 40px rgba(0,0,0,.1)}
-    .header{padding:30px;margin-bottom:16px}
-    .header h1{font-size:32px;font-weight:800;color:#2d3748}
-    .range{display:inline-flex;gap:8px;align-items:center;margin-top:10px;background:#f7fafc;color:#718096;border-radius:10px;padding:8px 14px;font-size:14px}
-    .alert{margin:12px 0;padding:12px 14px;border-radius:12px;font-weight:600}
-    .alert.ok{background:#def7ec;color:#03543f}.alert.warn{background:#fde8e8;color:#9b1c1c}
-    .kpi{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:16px;margin:16px 0}
-    .kpi .card{padding:22px}
-    .kpi .label{font-size:12px;letter-spacing:.6px;color:#718096;text-transform:uppercase;margin-bottom:8px}
-    .kpi .value{font-size:36px;font-weight:800;background:linear-gradient(135deg,#667eea,#764ba2);-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
-    .grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(480px,1fr));gap:16px;margin:16px 0}
-    .card{padding:24px}
-    .card h3{font-size:18px;font-weight:700;color:#2d3748;margin-bottom:14px}
-    .chart{position:relative;height:320px}
-    .table{margin-top:16px}
+    :root{
+      --bg1:#667eea; --bg2:#764ba2; --card:#fff; --text:#2d3748; --muted:#718096; --chip:#e6fffa;
+    }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
+      background:linear-gradient(135deg,var(--bg1),var(--bg2));min-height:100vh;padding:20px;color:var(--text)}
+    .container{max-width:1200px;margin:0 auto}
+    .card{background:rgba(255,255,255,.96);border-radius:18px;box-shadow:0 10px 40px rgba(0,0,0,.12);padding:22px}
+    header.card{margin-bottom:18px}
+    h1{font-size:28px;margin-bottom:6px}
+    .sub{color:var(--muted);font-size:14px}
+    .grid{display:grid;gap:16px}
+    .grid.stats{grid-template-columns:repeat(auto-fit,minmax(220px,1fr));margin:16px 0}
+    .stat .label{color:var(--muted);text-transform:uppercase;font-weight:600;font-size:12px;margin-bottom:8px}
+    .stat .val{font-size:34px;font-weight:800}
+    .pill{display:inline-block;background:#c6f6d5;color:#22543d;border-radius:999px;padding:4px 10px;font-size:12px;font-weight:700}
+    .warn{background:#fed7d7;color:#742a2a}
+    .notice{background:#c6f6d5;color:#22543d}
+    .section{margin-top:16px}
+    .chart{height:320px}
     table{width:100%;border-collapse:collapse}
-    th,td{padding:14px;border-bottom:1px solid #e5e7eb;font-size:14px;color:#374151}
-    th{text-align:left;background:#f7fafc;color:#4b5563;text-transform:uppercase;letter-spacing:.5px;font-size:12px}
-    .badge{padding:4px 10px;border-radius:999px;font-weight:700;font-size:12px;display:inline-block}
-    .b-ok{background:#d1fae5;color:#065f46}.b-info{background:#e0e7ff;color:#4338ca}.b-warn{background:#fee2e2;color:#7f1d1d}.b-cancel{background:#fef3c7;color:#92400e}
-    .spinner{display:inline-block;width:18px;height:18px;border:3px solid rgba(102,126,234,.3);border-radius:50%;border-top-color:#667eea;animation:spin 1s ease-in-out infinite;margin-left:8px}
+    th,td{padding:12px;border-bottom:1px solid #e2e8f0;font-size:14px}
+    th{background:#f7fafc;text-align:left;color:#4a5568;letter-spacing:.02em}
+    .k{color:#4a5568;font-size:13px}
+    .ok{background:#e6fffa;color:#035d56}
+    .spinner{display:inline-block;width:14px;height:14px;border:2px solid rgba(102,126,234,.35);border-top-color:#667eea;border-radius:50%;animation:spin 1s linear infinite;vertical-align:-2px}
     @keyframes spin{to{transform:rotate(360deg)}}
-    @media (max-width:768px){.grid{grid-template-columns:1fr}}
+    .badge{display:inline-block;padding:4px 10px;border-radius:999px;font-weight:700;font-size:12px}
+    .b-scheduled{background:#ebf8ff;color:#2b6cb0}
+    .b-completed{background:#c6f6d5;color:#22543d}
+    .b-cancelled{background:#fed7d7;color:#742a2a}
+    .b-noshow{background:#ffe9b3;color:#6b4f00}
   </style>
 </head>
 <body>
-  <div class="dashboard">
-    <div class="header">
+  <div class="container">
+    <header class="card">
       <h1>📊 Meeting Analytics</h1>
-      <div class="range">📅 Past 30 & Next 30 Days</div>
-      <div id="statusBar" class="alert ok" style="display:none;">Data loaded.</div>
-    </div>
+      <div class="sub">Past 30 &amp; next 30 days</div>
+      <div id="alert" class="section"></div>
+    </header>
 
-    <div class="kpi">
-      <div class="card"><div class="label">Total Meetings</div><div id="kpiTotal" class="value">0</div></div>
-      <div class="card"><div class="label">Meeting Hours (Actual if Zoom)</div><div id="kpiHours" class="value">0</div></div>
-      <div class="card"><div class="label">Avg Duration</div><div id="kpiAvg" class="value">0m</div></div>
-      <div class="card"><div class="label">No-show Rate</div><div id="kpiNoShow" class="value">0%</div></div>
-    </div>
+    <section class="grid stats">
+      <div class="card stat">
+        <div class="label">Total Meetings</div>
+        <div id="k_total" class="val">—</div>
+      </div>
+      <div class="card stat">
+        <div class="label">Meeting Hours</div>
+        <div id="k_hours" class="val">—</div>
+      </div>
+      <div class="card stat">
+        <div class="label">Avg Duration</div>
+        <div id="k_avg" class="val">—</div>
+      </div>
+      <div class="card stat">
+        <div class="label">No-Show Rate</div>
+        <div id="k_noshow" class="val">—</div>
+      </div>
+    </section>
 
-    <div class="grid">
+    <section class="grid" style="grid-template-columns:1fr 1fr;">
       <div class="card">
-        <h3>Meetings Over Time <span id="sp1" class="spinner" style="display:none;"></span></h3>
-        <div class="chart"><canvas id="timeChart"></canvas></div>
+        <div class="k">Meetings Over Time</div>
+        <div class="chart"><canvas id="lineChart"></canvas></div>
       </div>
       <div class="card">
-        <h3>Meeting Topic Distribution</h3>
+        <div class="k">Meeting Topic Distribution</div>
         <div class="chart"><canvas id="topicChart"></canvas></div>
       </div>
-    </div>
+    </section>
 
-    <div class="grid">
-      <div class="card"><h3>Popular Time Slots</h3><div class="chart"><canvas id="slotChart"></canvas></div></div>
-      <div class="card"><h3>Day of Week Distribution</h3><div class="chart"><canvas id="dowChart"></canvas></div></div>
-    </div>
-
-    <div class="card table">
-      <h3>Recent Meetings</h3>
-      <table id="tbl">
-        <thead><tr><th>Date</th><th>Time</th><th>Topic</th><th>Attendee</th><th>Duration</th><th>Status</th><th>Zoom</th></tr></thead>
-        <tbody></tbody>
+    <section class="card section">
+      <div class="k" style="margin-bottom:6px">Recent Meetings</div>
+      <div class="k" id="zoomStatus"></div>
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th><th>Time</th><th>Topic</th><th>Attendee</th><th>Duration</th><th>Status</th><th>Zoom</th>
+          </tr>
+        </thead>
+        <tbody id="rows"></tbody>
       </table>
-    </div>
+    </section>
   </div>
 
   <script>
-    // ===== CONFIG =====
-    // 🔗 PASTE your Apps Script web app URL here:
-    const GAS_URL = "https://script.google.com/a/macros/shepherdapp.com/s/AKfycbz7qVyJHTv6s1UP6-SgidFVbtSRxodLh1YRNwfYHjx0Q6Emd30O9S1dC_KLqLmYsz2Rxg/exec";
-    const LOOKBACK_DAYS = 30, LOOKAHEAD_DAYS = 30;
+    // 1) ADD YOUR APPS SCRIPT URL HERE (must end with /exec)
+    const GAS_URL = "YOUR_APPS_SCRIPT_EXEC_URL_HERE";
 
-    // ===== UTIL =====
-    const normKey = s => String(s||"").toLowerCase().replace(/\s|&|\/|\\|-/g,'_');
-    const getField = (row, names, fb="") => {
-      const keys = Object.keys(row);
-      for (const n of names) {
-        const needle = normKey(n);
-        const hit = keys.find(k => normKey(k)===needle);
-        if (hit && row[hit]!=null && row[hit]!=="") return row[hit];
-      }
-      return fb;
-    };
-    const parseDate = (val) => {
-      if (val==null || val==="") return null;
-      if (/^\d{5}(\.\d+)?$/.test(String(val))) {
-        const base = new Date(Date.UTC(1899,11,30));
-        return new Date(base.getTime() + Number(val)*86400000);
-      }
-      const d = new Date(val); return isNaN(d)?null:d;
-    };
-    const minutesBetween = (a,b)=>!a||!b?0:Math.max(0,Math.round((b-a)/60000));
-    const fmtDate = d => d.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'});
-    const fmtTime = d => d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'});
-    const boolish = v => ["true","1","yes","y","checked"].includes(String(v??"").trim().toLowerCase());
-    const statusFrom = ({ start, end, rawStatus, canceledAt, cancelReason, noShowFlag }) => {
-      const s = String(rawStatus||"").toLowerCase();
-      if (noShowFlag) return "No-Show";
-      if ((cancelReason && /no\s*show/i.test(cancelReason))) return "No-Show";
-      if (s.startsWith("cancel")) return "Canceled";
-      if (canceledAt) return "Canceled";
-      if (end && end < new Date()) return "Completed";
-      return "Scheduled";
-    };
-    const PALETTE = ["#4e79a7","#f28e2b","#e15759","#76b7b2","#59a14f","#edc948","#b07aa1","#ff9da7","#9c755f","#bab0ab","#1f77b4","#ff7f0e","#2ca02c","#d62728","#9467bd","#8c564b","#e377c2","#7f7f7f","#bcbd22","#17becf"];
+    // -------- utilities
+    const fmtMin = m => `${m}m`;
+    const parseISO = s => s ? new Date(s) : null;
+    const df = (d, opts) => d ? d.toLocaleDateString(undefined, opts || {month:'short', day:'numeric', year:'numeric'}) : '';
+    const tf = d => d ? d.toLocaleTimeString([], {hour:'numeric', minute:'2-digit'}) : '';
 
-    // Zoom ID extraction (supports us02web.zoom.us/j/123..., zoom.us/wc/123..., ?join= links)
-    const zoomIdFromText = (txt) => {
-      const s = String(txt||"");
-      // Common join patterns:
-      const m1 = s.match(/zoom\.us\/(?:j|wc)\/(\d{7,})/i);
-      if (m1) return m1[1];
-      const m2 = s.match(/https?:\/\/[\w.-]*zoom\.us\/my\/([a-z0-9._-]+)/i); // vanity URL (requires resolve on server)
-      if (m2) return `vanity:${m2[1]}`;
-      return null;
-    };
-
-    let charts = {};
-
-    async function fetchJSON(url){ const r=await fetch(url); if(!r.ok) throw new Error(`HTTP ${r.status}`); return r.json(); }
-
-    async function loadData() {
-      document.getElementById('sp1').style.display='inline-block';
-
-      // 1) get sheet data
-      const payload = await fetchJSON(GAS_URL);
-      const items = payload.items || [];
-
-      // 2) normalize rows and collect Zoom IDs
-      const START_FIELDS = ["start_time","event_start_time","start","invitee_start_time","start_date_time","Start Date & Time","start_date & time"];
-      const END_FIELDS   = ["end_time","event_end_time","end","invitee_end_time","end_date_time","End Date & Time","end_date & time"];
-      const CREATED      = ["created_at","event_created_date_time","Event Created Date & Time"];
-      const CANCELLED    = ["canceled_at","cancelled_at","invitee_canceled_at","cancellation_time"];
-      const TOPIC_FIELDS = ["question_2_topic","response_2","question_2_response","q2_response","q2"];
-
-      const rows = [];
-      const zoomIdSet = new Set();
-
-      for (const r of items){
-        const start = parseDate(getField(r, START_FIELDS));
-        const end   = parseDate(getField(r, END_FIELDS));
-        const created = parseDate(getField(r, CREATED));
-        const cancelledAt = parseDate(getField(r, CANCELLED));
-        const topic = (getField(r, TOPIC_FIELDS,"")||"").toString().trim() || "Unspecified";
-        const rawStatus = getField(r, ["status"], "");
-        const cancelReason = getField(r, ["cancel_reason","cancellation_reason","reason"], "");
-        const explicitNoShow = boolish(getField(r, ["no_show","noshow","is_no_show","marked_as_no_show"], ""));
-        const statusLabel = statusFrom({ start,end,rawStatus,canceledAt:cancelledAt,cancelReason,noShowFlag:explicitNoShow });
-        const attendee = getField(r, ["attendee_name","invitee_name","name","full_name"]);
-        const attendeeEmail = getField(r, ["attendee_email","invitee_email","email"]);
-        const eventUUID = getField(r, ["event_uuid","scheduled_event_uri","scheduled_event_url","event_url","uri"]);
-        const eventType = getField(r, ["event_type","meeting_type","title","name"], "Shepherd Connect");
-
-        // scan for Zoom link
-        const zoomFields = [getField(r,["zoom_url","zoom_link","zoom_uri","zoom_url"]),
-                            getField(r,["location","conference_link","meeting_link"]),
-                            getField(r,["notes","description","details"])];
-        let zoomId = null;
-        for (const z of zoomFields){ zoomId = zoomId || zoomIdFromText(z); }
-        if (zoomId) zoomIdSet.add(zoomId);
-
-        rows.push({
-          event_uuid:eventUUID, start,end,created,cancelledAt,
-          topic,statusLabel,attendee,attendeeEmail,eventType,
-          plannedMin: minutesBetween(start,end),
-          zoomId, zoom: null // to be enriched
-        });
-      }
-
-      // filter time window
-      const now = new Date();
-      const from = new Date(now); from.setDate(from.getDate()-LOOKBACK_DAYS);
-      const to   = new Date(now); to.setDate(to.getDate()+LOOKAHEAD_DAYS);
-      const inWindow = rows.filter(r=>r.start && r.start>=from && r.start<=to);
-
-      // 3) enrich with Zoom (batch)
-      const ids = Array.from(zoomIdSet);
-      let zoomMap = {};
-      if (ids.length){
-        try{
-          const q = encodeURIComponent(ids.join(","));
-          const zres = await fetchJSON(`${GAS_URL}?zoom=1&ids=${q}`);
-          // zres: { meetings: [{id, uuid, duration_min, topic, start_time, end_time, participants, summary, vanity}] }
-          (zres.meetings||[]).forEach(m=>{
-            // Key by id and by vanity if returned
-            if (m.id) zoomMap[m.id]=m;
-            if (m.vanity) zoomMap[`vanity:${m.vanity}`]=m;
-          });
-        }catch(e){
-          console.warn("Zoom enrichment failed:", e);
-        }
-      }
-
-      inWindow.forEach(r=>{
-        if (!r.zoomId) return;
-        const hit = zoomMap[r.zoomId];
-        if (hit){
-          r.zoom = hit;
-          // prefer Zoom’s actual duration if present
-          r.actualMin = Number(hit.duration_min)||0;
-        }else{
-          r.actualMin = 0;
-        }
-      });
-
-      // 4) KPIs (prefer actuals if present)
-      const total = inWindow.length;
-      const minutes = inWindow.reduce((acc,r)=>acc + (r.actualMin>0 ? r.actualMin : r.plannedMin),0);
-      const hours = Math.round(minutes/60);
-      const avg = total? Math.round(minutes/total) : 0;
-      const noShowCount = inWindow.filter(r=>r.statusLabel==="No-Show").length;
-
-      document.getElementById('kpiTotal').textContent = total;
-      document.getElementById('kpiHours').textContent = hours;
-      document.getElementById('kpiAvg').textContent = `${avg}m`;
-      document.getElementById('kpiNoShow').textContent = `${Math.round((noShowCount/Math.max(1,total))*100)}%`;
-
-      // 5) charts
-      const dayLabels=[], completedSeries=[], cancelledSeries=[];
-      const dc = new Date(from); dc.setHours(0,0,0,0);
-      while(dc<=to){
-        const d0 = new Date(dc);
-        dayLabels.push(d0.toLocaleDateString(undefined,{month:'short',day:'numeric'}));
-        const same = inWindow.filter(r=>r.start && r.start.toDateString()===d0.toDateString());
-        completedSeries.push(same.filter(r=>r.statusLabel==="Completed"||r.statusLabel==="Scheduled").length);
-        cancelledSeries.push(same.filter(r=>r.statusLabel==="Canceled"||r.statusLabel==="No-Show").length);
-        dc.setDate(dc.getDate()+1);
-      }
-
-      const topicCounts = {};
-      inWindow.forEach(r=>{ topicCounts[r.topic]=(topicCounts[r.topic]||0)+1; });
-      const topicLabels = Object.keys(topicCounts);
-      const topicData = topicLabels.map(k=>topicCounts[k]);
-      const topicColors = topicLabels.map((_,i)=>PALETTE[i%PALETTE.length]);
-
-      const slotBuckets=["7 AM","8 AM","9 AM","10 AM","11 AM","12 PM","1 PM","2 PM","3 PM","4 PM","5 PM"];
-      const slotValues = slotBuckets.map(()=>0);
-      inWindow.forEach(r=>{
-        if(!r.start) return;
-        const h=r.start.getHours(), hour12=((h+11)%12)+1, ampm=h<12?"AM":"PM";
-        const label=`${hour12} ${ampm}`, idx=slotBuckets.indexOf(label);
-        if (idx>=0) slotValues[idx]+=1;
-      });
-
-      const dowBuckets=["Mon","Tue","Wed","Thu","Fri"]; const dowValues=[0,0,0,0,0];
-      inWindow.forEach(r=>{
-        if (!r.start) return;
-        const idx=(r.start.getDay()+6)%7; if (idx<=4) dowValues[idx]+=1;
-      });
-
-      // destroy old
-      for(const k in charts){ try{charts[k].destroy();}catch(_){} }
-
-      charts.time=new Chart(document.getElementById('timeChart'),{
-        type:'line',
-        data:{labels:dayLabels,datasets:[
-          {label:'Completed/Scheduled',data:completedSeries,borderColor:'#667eea',backgroundColor:'rgba(102,126,234,0.12)',tension:.35,fill:true,pointRadius:2},
-          {label:'Canceled/No-Show',data:cancelledSeries,borderColor:'#fb7185',backgroundColor:'rgba(251,113,133,0.12)',tension:.35,fill:true,pointRadius:2}
-        ]},
-        options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'top'},tooltip:{mode:'index',intersect:false}},scales:{y:{beginAtZero:true},x:{grid:{display:false}}}}
-      });
-
-      charts.topic=new Chart(document.getElementById('topicChart'),{
-        type:'doughnut',
-        data:{labels:topicLabels,datasets:[{data:topicData,backgroundColor:topicColors,borderWidth:0}]},
-        options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right'}}}
-      });
-
-      charts.slot=new Chart(document.getElementById('slotChart'),{
-        type:'bar',data:{labels:slotBuckets,datasets:[{label:'Meetings',data:slotValues,borderRadius:10,backgroundColor:'rgba(102,126,234,.85)'}]},
-        options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{beginAtZero:true}}}
-      });
-
-      charts.dow=new Chart(document.getElementById('dowChart'),{
-        type:'radar',data:{labels:dowBuckets,datasets:[{label:'Meetings',data:dowValues,borderColor:'#667eea',backgroundColor:'rgba(102,126,234,0.2)'}]},
-        options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}
-      });
-
-      // 6) table
-      const tbody=document.querySelector('#tbl tbody'); tbody.innerHTML="";
-      inWindow.sort((a,b)=>b.start-a.start).slice(0,60).forEach(r=>{
-        const date=fmtDate(r.start), time=fmtTime(r.start), topic=r.topic||"Unspecified", attendee=r.attendee||"";
-        const actual = r.actualMin>0? `${r.actualMin} min` : `${r.plannedMin} min`;
-        const status=r.statusLabel;
-        const badgeClass = status==="No-Show"?"b-warn": status==="Canceled"?"b-cancel": status==="Completed"?"b-ok":"b-info";
-        const zoomCol = r.zoom ? `${r.zoom.duration_min || ""}m${r.zoom.summary? " – " + r.zoom.summary : ""}` : (r.zoomId? "Resolving…" : "");
-        const tr=document.createElement('tr');
-        tr.innerHTML=`<td>${date}</td><td>${time}</td><td>${topic}</td><td>${attendee}</td><td>${actual}</td><td><span class="badge ${badgeClass}">${status}</span></td><td>${zoomCol}</td>`;
-        tbody.appendChild(tr);
-      });
-
-      document.getElementById('sp1').style.display='none';
-      const bar=document.getElementById('statusBar'); bar.className="alert ok"; bar.textContent="Data loaded."; bar.style.display='block';
+    async function fetchJSON(url){
+      const r = await fetch(url, {cache:'no-store'});
+      if(!r.ok) throw new Error(`HTTP ${r.status}`);
+      return r.json();
     }
 
-    (function init(){
-      if (!GAS_URL || GAS_URL.includes("https://script.google.com/macros/s/AKfycbz7qVyJHTv6s1UP6-SgidFVbtSRxodLh1YRNwfYHjx0Q6Emd30O9S1dC_KLqLmYsz2Rxg/exec")){
-        const bar=document.getElementById('statusBar'); bar.className="alert warn"; bar.textContent="Add your Google Apps Script Web App URL (GAS_URL)."; bar.style.display='block'; return;
+    // Robust Zoom ID extractor for values like:  Zoom URL: 'https://.../j/1234567890?pwd=...'
+    function zoomIdFromText(txt){
+      if(!txt) return null;
+      const s = String(txt).replace(/^Zoom URL:\s*/i,'').replace(/^['"]|['"]$/g,'').trim();
+      const mNum = s.match(/zoom\.us\/(?:j|wc)\/(\d{7,})/i);
+      if(mNum) return mNum[1];
+      const mVanity = s.match(/zoom\.us\/my\/([a-z0-9._-]+)/i);
+      if(mVanity) return `vanity:${mVanity[1]}`;
+      return null;
+    }
+
+    // Simple safe getter (supports list of possible keys)
+    function getField(row, candidates){
+      for(const key of candidates){
+        if(row[key] !== undefined && row[key] !== null && String(row[key]).trim() !== '') return row[key];
       }
-      loadData().catch(e=>{
-        console.error(e);
-        const bar=document.getElementById('statusBar'); bar.className="alert warn"; bar.textContent="Failed to load data. Open console for details."; bar.style.display='block';
+      return '';
+    }
+
+    // Status builder (Scheduled | Completed | Canceled | No-Show)
+    function computeStatus(row){
+      const status = (String(getField(row,['status','meeting_status'])).toLowerCase());
+      const canceledAt = getField(row,['canceled_at']);
+      const noShow = /no[\s-]?show/i.test(getField(row,['no_show','notes','status_notes']));
+      if(noShow) return 'No-Show';
+      if(canceledAt || status==='canceled' || status==='cancelled') return 'Canceled';
+      if(status==='completed' || status==='done') return 'Completed';
+      return 'Scheduled';
+    }
+
+    function statusBadge(s){
+      const map = {
+        'Scheduled':'b-scheduled',
+        'Completed':'b-completed',
+        'Canceled':'b-cancelled',
+        'No-Show':'b-noshow'
+      };
+      return `<span class="badge ${map[s]||'b-scheduled'}">${s}</span>`;
+    }
+
+    // -------- charts handles
+    let lineChart, topicChart;
+
+    function renderCharts(series, topicCounts){
+      // line chart
+      const labels = series.map(d=>d.label);
+      const completed = series.map(d=>d.completed);
+      const cancelled = series.map(d=>d.cancelled);
+
+      const ctx1 = document.getElementById('lineChart').getContext('2d');
+      if(lineChart) lineChart.destroy();
+      lineChart = new Chart(ctx1,{
+        type:'line',
+        data:{
+          labels,
+          datasets:[
+            {label:'Completed', data:completed, tension:.35, fill:false},
+            {label:'Cancelled', data:cancelled, tension:.35, fill:false}
+          ]
+        },
+        options:{responsive:true, maintainAspectRatio:false}
       });
+
+      // topic donut
+      const tlabels = Object.keys(topicCounts);
+      const tdata = tlabels.map(k=>topicCounts[k]);
+      const colors = [
+        '#3b82f6','#ef4444','#f59e0b','#10b981','#8b5cf6','#64748b','#06b6d4',
+        '#84cc16','#f97316','#a855f7','#22c55e','#e11d48'
+      ];
+      const ctx2 = document.getElementById('topicChart').getContext('2d');
+      if(topicChart) topicChart.destroy();
+      topicChart = new Chart(ctx2,{
+        type:'doughnut',
+        data:{ labels:tlabels, datasets:[{ data:tdata, backgroundColor:tlabels.map((_,i)=>colors[i%colors.length]) }]},
+        options:{responsive:true, maintainAspectRatio:false, cutout:'60%'}
+      });
+    }
+
+    // -------- main
+    (async function load(){
+      const alert = document.getElementById('alert');
+      const zoomStatus = document.getElementById('zoomStatus');
+      try{
+        if(!GAS_URL || GAS_URL.includes('https://script.google.com/macros/s/AKfycbz7qVyJHTv6s1UP6-SgidFVbtSRxodLh1YRNwfYHjx0Q6Emd30O9S1dC_KLqLmYsz2Rxg/exec')){
+          alert.innerHTML = `<div class="badge warn">Add your Google Apps Script Web App URL (GAS_URL).</div>`;
+          return;
+        }
+
+        alert.innerHTML = `<span class="badge notice">Loading data…</span>`;
+        const payload = await fetchJSON(GAS_URL);
+        const items = (payload.items||[]);
+
+        // normalize rows we need
+        const now = new Date();
+        const startBound = new Date(now); startBound.setDate(startBound.getDate()-30);
+        const endBound = new Date(now);   endBound.setDate(endBound.getDate()+30);
+
+        const rows = items.map(r=>{
+          const start = parseISO(getField(r,['start_time','Start Date & Time','start','start_date_time']));
+          const end   = parseISO(getField(r,['end_time','End Date & Time','end','end_date_time']));
+          const topic = getField(r,['question_2_topic','Question 2 Response','Response 2','meeting_topic']) || 'Unspecified';
+          const attendee = getField(r,['attendee_name','invitee_name','name']);
+          const durMin = (()=> {
+            const v = getField(r,['duration_min','duration','length_min']);
+            const n = Number(v); return isFinite(n) && n>0 ? n : (start&&end ? Math.round((end-start)/60000) : 0);
+          })();
+          const status = computeStatus(r);
+
+          // zoom id
+          const ztxt = getField(r,['zoom_url','zoom_join_url','zoom_link','zoom_uri','location','notes','description']);
+          const zoomId = zoomIdFromText(ztxt);
+
+          return {raw:r,start,end,topic,attendee,durMin,status,zoomId};
+        })
+        // filter to ±30d window if dates exist, else keep
+        .filter(r=>!r.start || (r.start>=startBound && r.start<=endBound));
+
+        // KPIs
+        const total = rows.length;
+        const totalMin = rows.reduce((a,b)=>a+b.durMin,0);
+        const avg = total ? Math.round(totalMin/total) : 0;
+        const noShows = rows.filter(r=>r.status==='No-Show').length;
+        document.getElementById('k_total').textContent = total;
+        document.getElementById('k_hours').textContent = (totalMin/60).toFixed(0);
+        document.getElementById('k_avg').textContent = fmtMin(avg);
+        document.getElementById('k_noshow').textContent = total ? `${Math.round((noShows/total)*100)}%` : '0%';
+
+        // series for line chart (by day)
+        const byDay = new Map();
+        rows.forEach(r=>{
+          const key = r.start ? r.start.toISOString().slice(0,10) : '';
+          if(!key) return;
+          if(!byDay.has(key)) byDay.set(key,{completed:0,cancelled:0});
+          if(r.status==='Canceled') byDay.get(key).cancelled++;
+          else if(r.status==='Completed' || r.status==='No-Show' || r.status==='Scheduled') byDay.get(key).completed++;
+        });
+        const series = Array.from(byDay.entries())
+          .sort((a,b)=>a[0]<b[0]?-1:1)
+          .map(([k,v])=>({label:new Date(k).toLocaleDateString(undefined,{month:'short',day:'numeric'}), ...v}));
+
+        // topics
+        const topicCounts = {};
+        rows.forEach(r=>{ topicCounts[r.topic]=(topicCounts[r.topic]||0)+1; });
+
+        renderCharts(series, topicCounts);
+
+        // ---------- Zoom enrichment (CHUNKED) ----------
+        zoomStatus.innerHTML = `<span class="spinner"></span> Resolving Zoom durations…`;
+        const zoomIdSet = new Set(rows.map(r=>r.zoomId).filter(Boolean));
+        const ids = Array.from(zoomIdSet);
+        const zoomMap = {};
+        const CHUNK = 25;
+
+        async function fetchZoomBatch(batch){
+          const q = encodeURIComponent(batch.join(','));
+          const url = `${GAS_URL}?zoom=1&ids=${q}`;
+          const zres = await fetchJSON(url);
+          (zres.meetings || []).forEach(m=>{
+            if(m.id) zoomMap[m.id]=m;
+            if(m.vanity) zoomMap[`vanity:${m.vanity}`]=m;
+          });
+        }
+        for(let i=0;i<ids.length;i+=CHUNK){
+          await fetchZoomBatch(ids.slice(i,i+CHUNK));
+        }
+        zoomStatus.textContent = `Zoom lookups: ${Object.keys(zoomMap).length}/${ids.length}`;
+
+        // ---------- render table ----------
+        const tbody = document.getElementById('rows');
+        tbody.innerHTML = rows
+          .sort((a,b)=>(b.start?.getTime()||0)-(a.start?.getTime()||0))
+          .slice(0,100)
+          .map(r=>{
+            const z = r.zoomId ? (zoomMap[r.zoomId]||null) : null;
+            const zoomCol = z ? `${(z.duration_min||'')}m` : (r.zoomId ? '—' : '');
+            const d = r.start ? df(r.start) : '';
+            const t = r.start ? tf(r.start) : '';
+            return `<tr>
+              <td>${d}</td>
+              <td>${t}</td>
+              <td>${r.topic}</td>
+              <td>${r.attendee||''}</td>
+              <td>${fmtMin(r.durMin)}</td>
+              <td>${statusBadge(r.status)}</td>
+              <td>${zoomCol}</td>
+            </tr>`;
+          }).join('');
+
+        alert.innerHTML = `<span class="badge ok">Data loaded.</span>`;
+      }catch(err){
+        console.error(err);
+        document.getElementById('alert').innerHTML =
+          `<span class="badge warn">Load error: ${String(err.message||err)}</span>`;
+      }
     })();
   </script>
 </body>
