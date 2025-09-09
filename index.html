@@ -230,8 +230,7 @@
       const CHUNK = 25;
 
       async function fetchZoomBatch(batch){
-        const q = encodeURIComponent(batch.join(','));
-        const url = `${GAS_URL}?zoom=1&ids=${q}`;
+        const url = `${GAS_URL}?zoom=1&ids=${batch.join(',')}`;
         const zres = await fetchJSONOrJSONP(url);
         (zres.meetings || []).forEach(m=>{
           if(m.id) zoomMap[m.id]=m;
