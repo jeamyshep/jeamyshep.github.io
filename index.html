@@ -73,7 +73,7 @@
 
 <script>
   // ===== REQUIRED: paste your /exec URL here =====
-  const GAS_URL = "PASTE_YOUR_APPS_SCRIPT_EXEC_URL_HERE";
+  const GAS_URL = "https://script.google.com/macros/s/AKfycbzPH58R_gcBRMjKwIFMPhpe1tgMuN-2DAb-J-njOyAd9cbnpxtYAVd1WpRJq856fLZxBw/exec";
 
   // ===== helpers: status & formatting
   const parseISO = s => s ? new Date(s) : null;
@@ -158,7 +158,7 @@
 
   // ===== Main load
   (async function load(){
-    if(!GAS_URL || GAS_URL.includes('https://script.google.com/macros/s/AKfycbzPH58R_gcBRMjKwIFMPhpe1tgMuN-2DAb-J-njOyAd9cbnpxtYAVd1WpRJq856fLZxBw/exec')){
+    if(!GAS_URL || GAS_URL.includes('PASTE_YOUR_APPS_SCRIPT_EXEC_URL_HERE')){
       msg('Add your Google Apps Script Web App URL (GAS_URL).','warn');
       return;
     }
