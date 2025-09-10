@@ -4,9 +4,8 @@
   <meta charset="utf-8" />
   <title>Shepherd • Meeting Analytics</title>
   <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <!-- Chart.js -->
+  <!-- Chart.js (no SRI to avoid integrity mismatch) -->
   <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-
 
   <style>
     :root {
@@ -16,9 +15,6 @@
       --muted: #6b7280;
       --brand1: #667eea;
       --brand2: #764ba2;
-      --accent: #10b981;
-      --danger: #ef4444;
-      --warn: #f59e0b;
       --shadow: 0 10px 24px rgba(0,0,0,0.08);
     }
     * { box-sizing: border-box; }
@@ -36,23 +32,17 @@
     .title { font-size: 22px; font-weight: 800; letter-spacing: .2px; }
     .sub { color: var(--muted); font-size: 13px; }
     .row { display: grid; grid-template-columns: repeat(12, 1fr); gap: 16px; }
-    .card {
-      background: var(--panel); border-radius: 16px; box-shadow: var(--shadow); padding: 16px;
-    }
+    .card { background: var(--panel); border-radius: 16px; box-shadow: var(--shadow); padding: 16px; }
     .stat { grid-column: span 3; display: flex; flex-direction: column; gap: 6px; }
     .stat .label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .5px; }
     .stat .value { font-size: 28px; font-weight: 800; background: linear-gradient(135deg, var(--brand1), var(--brand2));
       -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
     }
-    .stat .delta { font-size: 12px; font-weight: 700; display:inline-flex; align-items: center; gap:6px; padding:4px 8px; border-radius: 999px; }
-    .delta.ok { background: #d1fae5; color: #065f46; }
-    .delta.bad { background: #fee2e2; color: #991b1b; }
 
     .chart-card { grid-column: span 6; }
     .chart-title { display:flex; align-items:center; justify-content: space-between; margin-bottom: 8px; font-weight:700; }
     .chart-wrap { position: relative; height: 320px; }
-    /* Prevent runaway canvas growth */
-    canvas { max-height: 320px !important; }
+    canvas { max-height: 320px !important; } /* Prevent runaway canvas growth */
 
     .table { grid-column: span 12; overflow: hidden; }
     table { width:100%; border-collapse: collapse; }
@@ -64,12 +54,9 @@
     .b-completed { background:#d1fae5; color:#065f46; }
     .b-canceled { background:#fee2e2; color:#991b1b; }
     .b-no-show { background:#fde68a; color:#92400e; }
-    .btn {
-      font-size: 12px; font-weight: 700; padding: 6px 10px; border-radius: 8px; border: 0; cursor: pointer;
-      background: #f3f4f6; color: #111827;
-    }
+    .btn { font-size: 12px; font-weight: 700; padding: 6px 10px; border-radius: 8px; border: 0; cursor: pointer;
+      background: #f3f4f6; color: #111827; }
     .btn:hover { background:#e5e7eb; }
-    .btn.primary { background: linear-gradient(135deg, var(--brand1), var(--brand2)); color:white; }
     .btn.warn { background: #fff7ed; color:#9a3412; border:1px solid #fdba74; }
     .pill { background:#f1f5f9; color:#0f172a; padding: 6px 10px; border-radius: 999px; font-size: 12px; }
     .muted { color: var(--muted); }
@@ -83,7 +70,7 @@
     <div class="header">
       <div>
         <div class="title">📊 Shepherd Meeting Analytics</div>
-        <div class="sub"><span id="rangeLabel">Last 365 days</span> • <span id="loadStatus" class="muted">Loading…</span></div>
+        <div class="sub"><span id="rangeLabel">Last 90 days</span> • <span id="loadStatus" class="muted">Loading…</span></div>
       </div>
       <div style="display:flex; gap:8px; align-items:center;">
         <button class="btn" id="refreshBtn">Refresh</button>
@@ -94,24 +81,20 @@
 
     <div class="row" id="stats">
       <div class="card stat">
-        <div class="label">Total Meetings (actual)</div>
+        <div class="label">Total Meetings</div>
         <div class="value" id="totalMeetings">—</div>
-        <div class="delta ok" id="totalDelta">•</div>
       </div>
       <div class="card stat">
-        <div class="label">Meeting Hours (actual)</div>
+        <div class="label">Meeting Hours</div>
         <div class="value" id="hours">—</div>
-        <div class="delta ok" id="hoursDelta">•</div>
       </div>
       <div class="card stat">
-        <div class="label">Avg Duration (actual)</div>
+        <div class="label">Avg Duration</div>
         <div class="value" id="avg">—</div>
-        <div class="delta bad" id="avgDelta">•</div>
       </div>
       <div class="card stat">
         <div class="label">No-Show Rate</div>
         <div class="value" id="noshow">—</div>
-        <div class="delta" id="noshowDelta">•</div>
       </div>
     </div>
 
@@ -167,6 +150,7 @@
     // ======== CONFIG ========
     // 🔴 Replace this with your Apps Script /exec URL
     const GAS_URL = "https://script.google.com/macros/s/AKfycbyEtW4NavweNH70Kdd4ftwGHzNRFEwgNGF6783jhaFAUWeJ21NkhUSEJxNxHkdT7uzJ1w/exec";
+    const RANGE_DAYS = 90;
 
     // ======== Utilities ========
     const ZOOM_ID_RE = /zoom\.us\/j\/(\d{8,})/i;
@@ -177,7 +161,6 @@
       return (Date.now() - d.getTime()) > padMin * 60 * 1000;
     };
 
-    // JSONP helper (avoid CORS)
     function jsonp(url) {
       return new Promise((resolve, reject) => {
         const cb = 'gas_cb_' + Math.random().toString(36).slice(2);
@@ -190,18 +173,12 @@
         document.body.appendChild(s);
       });
     }
-
-    async function fetchJSONOrJSONP(url) {
-      // Always JSONP to be safe with script.google.com
-      return jsonp(url);
-    }
+    async function fetchJSONOrJSONP(url) { return jsonp(url); }
 
     // Local cache for Zoom minutes to speed up reloads
     const ZCACHE_KEY = 'zoom_minutes_map_v1';
-    const readZoomCache = () => {
-      try { return JSON.parse(localStorage.getItem(ZCACHE_KEY) || '{}'); } catch { return {}; }
-    };
-    const writeZoomCache = (map) => { localStorage.setItem(ZCACHE_KEY, JSON.stringify(map||{})); };
+    const readZoomCache = () => { try { return JSON.parse(localStorage.getItem(ZCACHE_KEY) || '{}'); } catch { return {}; } };
+    const writeZoomCache = (map) => localStorage.setItem(ZCACHE_KEY, JSON.stringify(map||{}));
 
     function extractZoomId(zoomCell) {
       if (!zoomCell) return null;
@@ -209,12 +186,9 @@
       const m = url.match(ZOOM_ID_RE);
       return (m && m[1]) ? m[1] : null;
     }
-
     function unique(arr) { return Array.from(new Set(arr)); }
 
-    // Pleasant distinct color generator for topics
     function topicPalette(n) {
-      // Pre-baked distinct palette; will cycle if > length
       const base = [
         '#6366F1','#F97316','#22C55E','#EF4444','#06B6D4','#A855F7',
         '#EAB308','#10B981','#F43F5E','#84CC16','#0EA5E9','#FB7185',
@@ -222,7 +196,6 @@
       ];
       return Array.from({length: n}, (_,i) => base[i % base.length]);
     }
-
     function statusBadge(s) {
       const v = (s||'').toLowerCase();
       if (v === 'completed') return '<span class="badge b-completed">Completed</span>';
@@ -233,68 +206,45 @@
 
     // ======== Charts ========
     let lineChart, topicChart, slotsChart, dowChart;
-
     function drawLineChart(points) {
       if (lineChart) lineChart.destroy();
       const ctx = document.getElementById('lineChart');
       lineChart = new Chart(ctx, {
         type: 'line',
-        data: {
-          labels: points.map(p => p.label),
-          datasets: [{
-            label: 'Meetings',
-            data: points.map(p => p.count),
-            fill: true,
-            tension: .35
-          }]
-        },
-        options: {
-          maintainAspectRatio: false,
-          responsive: true,
-          scales: {
-            y: { beginAtZero: true, ticks: { precision:0 } }
-          }
-        }
+        data: { labels: points.map(p => p.label),
+          datasets: [{ label: 'Meetings', data: points.map(p => p.count), fill: true, tension: .35 }] },
+        options: { maintainAspectRatio: false, responsive: true, scales: { y: { beginAtZero: true, ticks: { precision:0 } } } }
       });
     }
-
     function drawTopicChart(topicCounts) {
       if (topicChart) topicChart.destroy();
       const labels = Object.keys(topicCounts);
       const vals = labels.map(k => topicCounts[k]);
       const colors = topicPalette(labels.length);
       const ctx = document.getElementById('topicChart');
-      topicChart = new Chart(ctx, {
-        type: 'pie',
+      topicChart = new Chart(ctx, { type: 'pie',
         data: { labels, datasets: [{ data: vals, backgroundColor: colors }] },
-        options: { maintainAspectRatio: false, responsive: true }
-      });
+        options: { maintainAspectRatio: false, responsive: true } });
     }
-
     function drawSlotsChart(slotCounts) {
       if (slotsChart) slotsChart.destroy();
       const entries = Object.entries(slotCounts).sort((a,b)=> a[0].localeCompare(b[0]));
       const labels = entries.map(([h])=>h);
       const vals = entries.map(([_,v])=>v);
       const ctx = document.getElementById('slotsChart');
-      slotsChart = new Chart(ctx, {
-        type: 'bar',
+      slotsChart = new Chart(ctx, { type: 'bar',
         data: { labels, datasets: [{ label:'Meetings', data: vals, borderRadius: 8 }] },
-        options: { maintainAspectRatio: false, responsive: true, scales: { y:{beginAtZero:true} } }
-      });
+        options: { maintainAspectRatio: false, responsive: true, scales: { y:{beginAtZero:true} } } });
     }
-
     function drawDowChart(dowCounts) {
       if (dowChart) dowChart.destroy();
       const order = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
       const labels = order;
       const vals = labels.map(d => dowCounts[d] || 0);
       const ctx = document.getElementById('dowChart');
-      dowChart = new Chart(ctx, {
-        type: 'radar',
+      dowChart = new Chart(ctx, { type: 'radar',
         data: { labels, datasets: [{ label:'Meetings', data: vals }] },
-        options: { maintainAspectRatio: false, responsive: true }
-      });
+        options: { maintainAspectRatio: false, responsive: true } });
     }
 
     // ======== Rendering ========
@@ -310,12 +260,6 @@
       document.getElementById('hours').textContent = fmt(hours);
       document.getElementById('avg').textContent = fmt(avg) + 'm';
       document.getElementById('noshow').textContent = fmt(nosRate) + '%';
-
-      // Deltas are placeholders (you can wire historical compare here)
-      document.getElementById('totalDelta').textContent = 'using real Zoom durations';
-      document.getElementById('hoursDelta').textContent = `${fmt(totalMinutes)} minutes`;
-      document.getElementById('avgDelta').textContent = 'actual';
-      document.getElementById('noshowDelta').textContent = `${fmt(nos)} no-shows`;
     }
 
     function groupByDay(rows) {
@@ -327,7 +271,6 @@
       }
       return Array.from(m.entries()).map(([label,count])=>({label,count}));
     }
-
     function countTopics(rows) {
       const obj = {};
       for (const r of rows) {
@@ -336,18 +279,16 @@
       }
       return obj;
     }
-
     function countHourSlots(rows) {
       const obj = {};
       for (const r of rows) {
         const d = toDate(r.start_time || r.created_at);
         if (!d) continue;
-        const label = d.toLocaleTimeString([], { hour: 'numeric' }); // e.g., "1 PM"
+        const label = d.toLocaleTimeString([], { hour: 'numeric' });
         obj[label] = (obj[label]||0)+1;
       }
       return obj;
     }
-
     function countDOW(rows) {
       const obj = {};
       for (const r of rows) {
@@ -387,7 +328,6 @@
         tb.appendChild(tr);
       }
       document.getElementById('tableInfo').textContent = `${fmt(sorted.length)} total • showing ${fmt(Math.min(100, sorted.length))}`;
-      // Wire actions
       tb.querySelectorAll('button[data-uuid]').forEach(btn => {
         btn.addEventListener('click', () => markNoShow(btn.getAttribute('data-uuid')));
       });
@@ -399,7 +339,7 @@
         const url = `${GAS_URL}?action=markNoShow&uuid=${encodeURIComponent(uuid)}`;
         const resp = await fetchJSONOrJSONP(url);
         if (resp && resp.ok) {
-          alert('Marked as No-Show. Refreshing…');
+          // Reload to update top counts and table status
           load(true);
         } else {
           alert('Failed to mark no-show.');
@@ -412,45 +352,47 @@
     // ======== Main Load ========
     async function load(force = false) {
       document.getElementById('loadStatus').textContent = 'Loading…';
+      document.getElementById('rangeLabel').textContent = `Last ${RANGE_DAYS} days`;
       try {
-        const data = await fetchJSONOrJSONP(`${GAS_URL}?action=fetch&rangeDays=365`);
+        const data = await fetchJSONOrJSONP(`${GAS_URL}?action=fetch&rangeDays=${RANGE_DAYS}`);
         let rows = (data && data.items) ? data.items : [];
         document.getElementById('rowCount').textContent = `Loaded: ${fmt(rows.length)}`;
         if (!rows.length) throw new Error('No rows returned');
 
         // Extract Zoom IDs
         const idsAll = unique(rows.map(r => extractZoomId(r.zoom_url || '')).filter(Boolean));
-        // Use cache unless force reload
+
+        // Cache
         let cache = force ? {} : readZoomCache();
         const toFetch = idsAll.filter(id => !(id in cache));
-        let hitCount = 0;
+        let applied = 0;
 
+        // Fetch missing Zoom minutes in chunks
         if (toFetch.length) {
-          // Batch in chunks of 50
           for (let i=0; i<toFetch.length; i+=50) {
             const chunk = toFetch.slice(i, i+50);
             const res = await fetchJSONOrJSONP(`${GAS_URL}?action=zoomBatch&ids=${encodeURIComponent(chunk.join(','))}`);
             if (res && res.map) {
               Object.assign(cache, res.map);
-              hitCount += Object.keys(res.map).length;
               writeZoomCache(cache);
             }
           }
         }
-        // Merge minutes back into rows
-        let applied = 0;
+
+        // Merge and enforce completed if real minutes present
         for (const r of rows) {
           const id = extractZoomId(r.zoom_url || '');
           if (id && cache[id]) {
             r.zoom_minutes = Number(cache[id].minutes || 0);
-            // Update status for past meetings when not canceled
-            if (isPast(r.start_time || r.created_at) && (r.status || '').toLowerCase() !== 'canceled') {
-              if (r.zoom_minutes > 0) r.status = 'completed';
-              else if ((r.no_show||'').toString().toLowerCase() === 'true' || cache[id].no_show === true) r.status = 'no-show';
+            if (r.zoom_minutes > 0) {
+              r.status = 'completed'; // your rule: any real Zoom time = completed
+            } else if ((r.no_show||'').toString().toLowerCase()==='true' || cache[id].no_show === true) {
+              r.status = 'no-show';
             }
             applied++;
           } else {
             r.zoom_minutes = Number(r.zoom_minutes || 0);
+            // If no Zoom info and in past, keep existing status (scheduled → stays unless toggled)
           }
         }
 
@@ -474,7 +416,6 @@
     }
 
     document.getElementById('refreshBtn').addEventListener('click', () => load(true));
-    // Kick off
     load();
   </script>
 </body>
