@@ -1,142 +1,114 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <title>Shepherd • Meeting Analytics</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <!-- Chart.js (no SRI to avoid integrity mismatch) -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
-
-  <style>
-    :root {
-      --bg1: #f6f8fc;
-      --panel: #ffffff;
-      --text: #1f2937;
-      --muted: #6b7280;
-      --brand1: #667eea;
-      --brand2: #764ba2;
-      --shadow: 0 10px 24px rgba(0,0,0,0.08);
-    }
-    * { box-sizing: border-box; }
-    body {
-      margin: 0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
-      background: linear-gradient(135deg, #eef2ff 0%, #fdf2f8 100%);
-      color: var(--text);
-    }
-    .container { max-width: 1200px; margin: 0 auto; padding: 24px; }
-    .header {
-      background: var(--panel); border-radius: 16px; padding: 20px;
-      box-shadow: var(--shadow); margin-bottom: 16px;
-      display: flex; align-items: center; justify-content: space-between; gap: 12px;
-    }
-    .title { font-size: 22px; font-weight: 800; letter-spacing: .2px; }
-    .sub { color: var(--muted); font-size: 13px; }
-    .row { display: grid; grid-template-columns: repeat(12, 1fr); gap: 16px; }
-    .card { background: var(--panel); border-radius: 16px; box-shadow: var(--shadow); padding: 16px; }
-    .stat { grid-column: span 3; display: flex; flex-direction: column; gap: 6px; }
-    .stat .label { color: var(--muted); font-size: 12px; text-transform: uppercase; letter-spacing: .5px; }
-    .stat .value { font-size: 28px; font-weight: 800; background: linear-gradient(135deg, var(--brand1), var(--brand2));
-      -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
-    }
-
-    .chart-card { grid-column: span 6; }
-    .chart-title { display:flex; align-items:center; justify-content: space-between; margin-bottom: 8px; font-weight:700; }
-    .chart-wrap { position: relative; height: 320px; }
-    canvas { max-height: 320px !important; } /* Prevent runaway canvas growth */
-
-    .table { grid-column: span 12; overflow: hidden; }
-    table { width:100%; border-collapse: collapse; }
-    th, td { padding: 10px 12px; font-size: 13px; border-bottom: 1px solid #eef2f7; text-align: left; vertical-align: middle; }
-    th { background:#f8fafc; color:#334155; font-weight:700; text-transform: uppercase; font-size: 12px; letter-spacing:.4px; }
-    tr:hover td { background:#f9fafb; }
-    .badge { font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 999px; display:inline-block; }
-    .b-scheduled { background:#e0e7ff; color:#3730a3; }
-    .b-completed { background:#d1fae5; color:#065f46; }
-    .b-canceled { background:#fee2e2; color:#991b1b; }
-    .b-no-show { background:#fde68a; color:#92400e; }
-    .btn { font-size: 12px; font-weight: 700; padding: 6px 10px; border-radius: 8px; border: 0; cursor: pointer;
-      background: #f3f4f6; color: #111827; }
-    .btn:hover { background:#e5e7eb; }
-    .btn.warn { background: #fff7ed; color:#9a3412; border:1px solid #fdba74; }
-    .pill { background:#f1f5f9; color:#0f172a; padding: 6px 10px; border-radius: 999px; font-size: 12px; }
-    .muted { color: var(--muted); }
-
-    @media (max-width: 900px) { .stat { grid-column: span 6; } .chart-card { grid-column: span 12; } }
-    @media (max-width: 640px) { .stat { grid-column: span 12; } }
-  </style>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Shepherd Meeting Analytics</title>
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#6b70e0;
+    --card:#f6f7fb;
+    --ink:#2b3340;
+    --muted:#7a8799;
+    --green:#22c55e; --red:#ef4444; --blue:#3b82f6; --orange:#f59e0b;
+    --pill:#e9eef7;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
+  body{background:linear-gradient(180deg,#6b70e0 0%,#6b70e0 60%,#5e66db 100%);color:var(--ink)}
+  .wrap{max-width:1180px;margin:28px auto;padding:0 18px}
+  .header{background:#eef1fb;border-radius:18px;padding:18px 20px 16px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 8px 28px rgba(0,0,0,.08)}
+  .h-left{display:flex;align-items:center;gap:12px}
+  .logo{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#6b70e0,#9fa3ff)}
+  .title{font-weight:700;font-size:22px}
+  .badge{font-size:12px;border-radius:999px;padding:6px 10px;background:#e8eefc;color:#2b3340}
+  .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:16px;margin-top:16px}
+  .card{background:var(--card);border-radius:16px;padding:16px;box-shadow:0 8px 24px rgba(0,0,0,.10)}
+  .kpi{grid-column:span 3}
+  .kpi .label{color:var(--muted);font-size:12px;letter-spacing:.02em}
+  .kpi .value{font-size:32px;font-weight:700;margin-top:6px}
+  .span-8{grid-column:span 8}
+  .span-4{grid-column:span 4}
+  .card h3{margin:0 0 12px 0;font-size:16px}
+  canvas{max-width:100%}
+  table{width:100%;border-collapse:separate;border-spacing:0 10px}
+  th{font-size:12px;color:var(--muted);text-align:left;padding:0 12px}
+  td{background:#fff;padding:16px 12px;border-top:1px solid #eef1f7;border-bottom:1px solid #eef1f7}
+  tr td:first-child{border-left:1px solid #eef1f7;border-top-left-radius:12px;border-bottom-left-radius:12px}
+  tr td:last-child{border-right:1px solid #eef1f7;border-top-right-radius:12px;border-bottom-right-radius:12px}
+  .pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:6px 10px;font-weight:600;font-size:12px}
+  .pill-green{background:#dcfce7;color:#0f5132}
+  .pill-blue{background:#e6f0ff;color:#1d4ed8}
+  .pill-red{background:#ffe4e6;color:#991b1b}
+  .pill-orange{background:#fff1db;color:#9a3412}
+  .btn{font-size:13px;border-radius:10px;border:1px solid #f7c99a;background:#fff7ed;color:#9a3412;padding:8px 10px;font-weight:700;cursor:pointer}
+  .btn[disabled]{opacity:.6;cursor:not-allowed}
+  .muted{color:var(--muted)}
+  .right{display:flex;align-items:center;gap:10px}
+  .small{font-size:12px}
+  .sr{position:absolute;left:-9999px}
+</style>
 </head>
 <body>
-  <div class="container">
+  <div class="wrap">
     <div class="header">
-      <div>
-        <div class="title">📊 Shepherd Meeting Analytics</div>
-        <div class="sub"><span id="rangeLabel">Last 90 days</span> • <span id="loadStatus" class="muted">Loading…</span></div>
+      <div class="h-left">
+        <div class="logo" aria-hidden="true"></div>
+        <div class="title">Shepherd Meeting Analytics</div>
       </div>
-      <div style="display:flex; gap:8px; align-items:center;">
-        <button class="btn" id="refreshBtn">Refresh</button>
-        <span class="pill" id="zoomHits">Zoom: 0/0</span>
-        <span class="pill" id="rowCount">Loaded: 0</span>
-      </div>
-    </div>
-
-    <div class="row" id="stats">
-      <div class="card stat">
-        <div class="label">Total Meetings</div>
-        <div class="value" id="totalMeetings">—</div>
-      </div>
-      <div class="card stat">
-        <div class="label">Meeting Hours</div>
-        <div class="value" id="hours">—</div>
-      </div>
-      <div class="card stat">
-        <div class="label">Avg Duration</div>
-        <div class="value" id="avg">—</div>
-      </div>
-      <div class="card stat">
-        <div class="label">No-Show Rate</div>
-        <div class="value" id="noshow">—</div>
+      <div class="right">
+        <span id="rangeLabel" class="badge">Last 365 days</span>
+        <span id="loadedBadge" class="badge">Loaded (0)</span>
       </div>
     </div>
 
-    <div class="row">
-      <div class="card chart-card">
-        <div class="chart-title">Meetings Over Time <span class="muted" id="s1"></span></div>
-        <div class="chart-wrap"><canvas id="lineChart"></canvas></div>
+    <div class="grid">
+      <div class="card kpi">
+        <div class="label">TOTAL MEETINGS</div>
+        <div id="kpiTotal" class="value">—</div>
+        <div id="zoomCounter" class="small muted">Zoom lookups: 0/0</div>
       </div>
-      <div class="card chart-card">
-        <div class="chart-title">Meeting Topics</div>
-        <div class="chart-wrap"><canvas id="topicChart"></canvas></div>
+      <div class="card kpi">
+        <div class="label">MEETING HOURS</div>
+        <div id="kpiHours" class="value">0.0</div>
       </div>
-    </div>
+      <div class="card kpi">
+        <div class="label">AVG DURATION (MIN)</div>
+        <div id="kpiAvg" class="value">0</div>
+      </div>
+      <div class="card kpi">
+        <div class="label">NO-SHOW RATE</div>
+        <div id="kpiNoShow" class="value">0%</div>
+      </div>
 
-    <div class="row">
-      <div class="card chart-card">
-        <div class="chart-title">Popular Time Slots</div>
-        <div class="chart-wrap"><canvas id="slotsChart"></canvas></div>
+      <div class="card span-8">
+        <h3>Meetings Over Time</h3>
+        <canvas id="lineChart"></canvas>
       </div>
-      <div class="card chart-card">
-        <div class="chart-title">Day of Week</div>
-        <div class="chart-wrap"><canvas id="dowChart"></canvas></div>
+      <div class="card span-4">
+        <h3>Meeting Topics Breakdown</h3>
+        <canvas id="topicChart" width="380" height="380" aria-label="Topic distribution"></canvas>
       </div>
-    </div>
 
-    <div class="row">
-      <div class="card table">
-        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:6px;">
-          <strong>Recent Meetings</strong>
-          <span class="muted" id="tableInfo"></span>
+      <div class="card" style="grid-column:1/-1;">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
+          <h3 style="margin:0">Recent Meetings</h3>
+          <div class="small muted">Zoom duration is used when available</div>
         </div>
-        <div style="overflow:auto; max-height: 480px;">
+        <div class="small muted" id="zoomProgress" style="margin:4px 0 8px 0">Zoom lookups: 0/0</div>
+        <div style="overflow:auto">
           <table id="tbl">
             <thead>
               <tr>
-                <th>Start</th>
-                <th>Attendee</th>
-                <th>Email</th>
-                <th>Topic</th>
-                <th>Status</th>
-                <th>Zoom Minutes</th>
-                <th>Actions</th>
+                <th>START</th>
+                <th>ATTENDEE</th>
+                <th>EMAIL</th>
+                <th>TOPIC</th>
+                <th>STATUS</th>
+                <th>ZOOM MINUTES</th>
+                <th>ACTIONS</th>
               </tr>
             </thead>
             <tbody id="tbody"></tbody>
@@ -146,277 +118,227 @@
     </div>
   </div>
 
-  <script>
-    // ======== CONFIG ========
-    // 🔴 Replace this with your Apps Script /exec URL
-    const GAS_URL = "https://script.google.com/macros/s/AKfycbzglF_yCcgbEXNA4sXdg70vklNOB_bwdE9j1VB3q4tCimnZJRCUrqCZYunRTWu-QZ3csg/exec";
-    const RANGE_DAYS = 90;
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+<script>
+  // ============= CONFIG =============
+  const GAS_URL = 'https://script.google.com/macros/s/AKfycbzxaRJ5clkPIQJc63BQpreGfFzixRXJwgR4Dd5WErOgXTm7dZr8PqBNxmAa15ItLWYeFw/exec'; // <-- replace with your deployed /exec URL
+  const RANGE_DAYS = 90;
 
-    // ======== Utilities ========
-    const ZOOM_ID_RE = /zoom\.us\/j\/(\d{8,})/i;
-    const fmt = (n) => n.toLocaleString(undefined);
-    const toDate = (iso) => iso ? new Date(iso) : null;
-    const isPast = (iso, padMin = 5) => {
-      const d = toDate(iso); if (!d) return false;
-      return (Date.now() - d.getTime()) > padMin * 60 * 1000;
-    };
+  // Topic palette (stable, unique colors)
+  const TOPIC_COLORS = {
+    'SOAP':'#6366f1',
+    'Clients/Patients':'#f97316',
+    'Scheduling':'#22c55e',
+    'Invoices':'#0ea5e9',
+    'Messaging/Client Communications':'#a855f7',
+    'Forms':'#94a3b8',
+    'Reporting':'#f59e0b',
+    'Products':'#2563eb',
+    'Inventory':'#10b981',
+    'Bulk Edit':'#ef4444',
+    'Reminders':'#fb7185',
+    'Other':'#fda4af',
+    'Unspecified':'#64748b'
+  };
 
-    function jsonp(url) {
-      return new Promise((resolve, reject) => {
-        const cb = 'gas_cb_' + Math.random().toString(36).slice(2);
-        const s = document.createElement('script');
-        const sep = url.includes('?') ? '&' : '?';
-        s.src = `${url}${sep}callback=${cb}`;
-        window[cb] = (data) => { resolve(data); cleanup(); };
-        s.onerror = () => { reject(new Error('JSONP failed')); cleanup(); };
-        function cleanup() { delete window[cb]; s.remove(); }
-        document.body.appendChild(s);
+  // ============= STATE =============
+  let APP_ITEMS = [];
+  let lineChart, topicChart;
+
+  // ============= HELPERS =============
+  function fmtDate(d){ return d.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}) }
+  function fmtTime(d){ return d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'}) }
+  function toDate(s){ const d = new Date(s); return isNaN(d)? null : d }
+  function jsonp(url,timeout=12000){
+    return new Promise((resolve,reject)=>{
+      const name = 'cb_'+Math.random().toString(36).slice(2);
+      const s = document.createElement('script');
+      const sep = url.includes('?')?'&':'?';
+      s.src = `${url}${sep}jsonp=${name}`;
+      window[name] = (data)=>{ clean(); resolve(data); };
+      s.onerror = ()=>{ clean(); reject(new Error('JSONP failed')); };
+      const t = setTimeout(()=>{ clean(); reject(new Error('JSONP timeout')); },timeout);
+      function clean(){
+        clearTimeout(t);
+        delete window[name];
+        if (s && s.parentNode) s.parentNode.removeChild(s);
+      }
+      document.head.appendChild(s);
+    });
+  }
+
+  // badge
+  function badge(status){
+    const s = (status||'').toLowerCase();
+    if (s==='completed') return `<span class="pill pill-green">Completed</span>`;
+    if (s==='no-show') return `<span class="pill pill-orange">No-Show</span>`;
+    if (s==='canceled' || s==='cancelled') return `<span class="pill pill-red">Canceled</span>`;
+    return `<span class="pill pill-blue">Scheduled</span>`;
+  }
+
+  function toast(msg,isErr){
+    const el = document.createElement('div');
+    el.textContent = msg;
+    el.style.cssText='position:fixed;right:16px;bottom:16px;padding:10px 14px;border-radius:10px;color:#1f2937;background:'+(isErr?'#fecaca':'#bbf7d0')+';box-shadow:0 8px 24px rgba(0,0,0,.12);font:500 14px';
+    document.body.appendChild(el);
+    setTimeout(()=>{ el.style.opacity='0'; el.style.transform='translateY(6px)'; }, 1600);
+    setTimeout(()=>{ el.remove(); }, 2200);
+  }
+
+  // ============= RENDER =============
+  function renderTable(items){
+    const tb = document.getElementById('tbody');
+    tb.innerHTML='';
+    const frag = document.createDocumentFragment();
+    items.forEach(it=>{
+      const tr = document.createElement('tr');
+      const start = toDate(it.start_time);
+      const zmin = it.zoom_minutes>0 ? `${it.zoom_minutes}m` : '—';
+      tr.innerHTML = `
+        <td>${start? fmtDate(start)+', '+fmtTime(start) : ''}</td>
+        <td>${it.attendee_name||''}</td>
+        <td class="muted small">${it.attendee_email||''}</td>
+        <td>${it.topic||'Unspecified'}</td>
+        <td data-col="status">${badge(it.status)}</td>
+        <td>${zmin}</td>
+        <td style="text-align:right">
+          <button class="btn" onclick="markNoShowClick(this,'${String(it.event_uuid)}')">Mark No-Show</button>
+        </td>
+      `;
+      frag.appendChild(tr);
+    });
+    tb.appendChild(frag);
+  }
+
+  function recomputeAndRenderTop(items){
+    const total = items.length;
+    // completed := has zoom_minutes > 0
+    const withZoom = items.filter(x=> Number(x.zoom_minutes)>0);
+    const mins = withZoom.reduce((a,b)=> a + Number(b.zoom_minutes||0), 0);
+    const avg = withZoom.length ? Math.round(mins/withZoom.length) : 0;
+    const noShows = items.filter(x=> (x.no_show||'').toString().toLowerCase()==='yes' || (x.status||'').toLowerCase()==='no-show').length;
+
+    document.getElementById('kpiTotal').textContent = total;
+    document.getElementById('kpiHours').textContent = (mins/60).toFixed(1);
+    document.getElementById('kpiAvg').textContent = avg;
+    document.getElementById('kpiNoShow').textContent = total? Math.round(noShows*100/total)+'%' : '0%';
+    document.getElementById('zoomCounter').textContent = `Zoom lookups: ${withZoom.length}/${total}`;
+    document.getElementById('zoomProgress').textContent = `Zoom lookups: ${withZoom.length}/${total}`;
+    document.getElementById('loadedBadge').textContent = `Loaded (${total})`;
+  }
+
+  function renderTopics(items){
+    const counts = {};
+    items.forEach(it=>{
+      const t = it.topic || 'Unspecified';
+      counts[t] = (counts[t]||0)+1;
+    });
+    const labels = Object.keys(counts);
+    const data = labels.map(l=>counts[l]);
+    const colors = labels.map(l=> TOPIC_COLORS[l] || '#9aa4b2');
+
+    if (topicChart) topicChart.destroy();
+    topicChart = new Chart(document.getElementById('topicChart'),{
+      type:'doughnut',
+      data:{ labels, datasets:[{ data, backgroundColor: colors }]},
+      options:{ plugins:{ legend:{ position:'top', labels:{ boxWidth:14 } } } }
+    });
+  }
+
+  function renderLine(items){
+    // group by day: completed only
+    const map = new Map();
+    items.forEach(it=>{
+      if (Number(it.zoom_minutes)>0){
+        const d = new Date(it.start_time);
+        const key = new Date(d.getFullYear(),d.getMonth(),d.getDate()).toISOString().slice(0,10);
+        map.set(key,(map.get(key)||0)+1);
+      }
+    });
+    const labels = Array.from(map.keys()).sort();
+    const data = labels.map(k=>map.get(k));
+
+    if (lineChart) lineChart.destroy();
+    lineChart = new Chart(document.getElementById('lineChart'),{
+      type:'line',
+      data:{ labels, datasets:[{ data, tension:.3, fill:false, pointRadius:2, borderWidth:2 }]},
+      options:{ scales:{ y:{ beginAtZero:true } }, plugins:{ legend:{display:false}} }
+    });
+  }
+
+  // ============= ACTIONS =============
+  async function markNoShowClick(btn, uuid){
+    try{
+      btn.disabled=true; const before=btn.textContent; btn.textContent='Marking…';
+      btn.classList.add('opacity-70','cursor-wait');
+
+      const url = `${GAS_URL}?action=markNoShow&uuid=${encodeURIComponent(uuid)}`;
+      const res = await jsonp(url);
+      if(!res || !res.ok) throw new Error(res && res.error ? res.error : 'Failed');
+
+      // update local row + UI
+      const it = APP_ITEMS.find(x=> String(x.event_uuid)===String(uuid));
+      if (it){ it.no_show='yes'; it.status='no-show'; it.zoom_minutes=it.zoom_minutes||0; }
+      const row = btn.closest('tr');
+      if (row){
+        const cell = row.querySelector('[data-col="status"]');
+        if (cell) cell.innerHTML = `<span class="pill pill-orange">No-Show</span>`;
+      }
+      btn.textContent='Marked'; btn.classList.remove('cursor-wait'); btn.disabled=true;
+
+      recomputeAndRenderTop(APP_ITEMS);
+      toast('Marked as No-Show');
+    }catch(err){
+      console.error(err);
+      btn.textContent=btn.dataset.originalText||'Mark No-Show';
+      btn.disabled=false; btn.classList.remove('cursor-wait');
+      toast('Could not mark No-Show',true);
+    }
+  }
+
+  // ============= LOAD =============
+  async function load(){
+    document.getElementById('rangeLabel').textContent = `Last ${RANGE_DAYS} days`;
+    try{
+      const data = await jsonp(`${GAS_URL}?action=fetch&rangeDays=${RANGE_DAYS}`);
+      if (!data || !Array.isArray(data.items)) throw new Error('Bad payload');
+
+      APP_ITEMS = data.items.map((r)=>({
+        event_uuid: r.event_uuid,
+        start_time: r.start_time,
+        end_time:   r.end_time,
+        attendee_name: r.attendee_name,
+        attendee_email: r.attendee_email,
+        topic: r.question_2_topic || r.topic || 'Unspecified',
+        status: (r.status || '').toString().toLowerCase(),
+        no_show: (r.no_show || ''),
+        zoom_minutes: Number(r.zoom_minutes||0),
+        zoom_url: r.zoom_url || ''
+      }));
+
+      // Normalize status based on zoom + flags
+      const now = Date.now();
+      APP_ITEMS.forEach(it=>{
+        const isNoShow = (it.no_show||'').toString().toLowerCase()==='yes' || it.status==='no-show';
+        if (isNoShow){ it.status='no-show'; return; }
+        if (it.zoom_minutes>0){ it.status='completed'; return; }
+        if (it.status==='canceled' || it.status==='cancelled'){ it.status='canceled'; return; }
+        const s = toDate(it.start_time);
+        if (s && s.getTime()>now){ it.status='scheduled'; }
+        else { it.status = 'scheduled'; }
       });
+
+      recomputeAndRenderTop(APP_ITEMS);
+      renderTopics(APP_ITEMS);
+      renderLine(APP_ITEMS);
+      renderTable(APP_ITEMS);
+    }catch(err){
+      console.error(err);
+      toast('Failed to load data. Check your GAS URL.', true);
+      document.getElementById('loadedBadge').textContent = 'Loaded (0)';
     }
-    async function fetchJSONOrJSONP(url) { return jsonp(url); }
-
-    // Local cache for Zoom minutes to speed up reloads
-    const ZCACHE_KEY = 'zoom_minutes_map_v1';
-    const readZoomCache = () => { try { return JSON.parse(localStorage.getItem(ZCACHE_KEY) || '{}'); } catch { return {}; } };
-    const writeZoomCache = (map) => localStorage.setItem(ZCACHE_KEY, JSON.stringify(map||{}));
-
-    function extractZoomId(zoomCell) {
-      if (!zoomCell) return null;
-      const url = String(zoomCell).replace(/^Zoom URL:\s*/i, '').trim();
-      const m = url.match(ZOOM_ID_RE);
-      return (m && m[1]) ? m[1] : null;
-    }
-    function unique(arr) { return Array.from(new Set(arr)); }
-
-    function topicPalette(n) {
-      const base = [
-        '#6366F1','#F97316','#22C55E','#EF4444','#06B6D4','#A855F7',
-        '#EAB308','#10B981','#F43F5E','#84CC16','#0EA5E9','#FB7185',
-        '#14B8A6','#F59E0B','#8B5CF6','#60A5FA'
-      ];
-      return Array.from({length: n}, (_,i) => base[i % base.length]);
-    }
-    function statusBadge(s) {
-      const v = (s||'').toLowerCase();
-      if (v === 'completed') return '<span class="badge b-completed">Completed</span>';
-      if (v === 'canceled' || v === 'cancelled') return '<span class="badge b-canceled">Canceled</span>';
-      if (v === 'no-show' || v === 'no_show') return '<span class="badge b-no-show">No-Show</span>';
-      return '<span class="badge b-scheduled">Scheduled</span>';
-    }
-
-    // ======== Charts ========
-    let lineChart, topicChart, slotsChart, dowChart;
-    function drawLineChart(points) {
-      if (lineChart) lineChart.destroy();
-      const ctx = document.getElementById('lineChart');
-      lineChart = new Chart(ctx, {
-        type: 'line',
-        data: { labels: points.map(p => p.label),
-          datasets: [{ label: 'Meetings', data: points.map(p => p.count), fill: true, tension: .35 }] },
-        options: { maintainAspectRatio: false, responsive: true, scales: { y: { beginAtZero: true, ticks: { precision:0 } } } }
-      });
-    }
-    function drawTopicChart(topicCounts) {
-      if (topicChart) topicChart.destroy();
-      const labels = Object.keys(topicCounts);
-      const vals = labels.map(k => topicCounts[k]);
-      const colors = topicPalette(labels.length);
-      const ctx = document.getElementById('topicChart');
-      topicChart = new Chart(ctx, { type: 'pie',
-        data: { labels, datasets: [{ data: vals, backgroundColor: colors }] },
-        options: { maintainAspectRatio: false, responsive: true } });
-    }
-    function drawSlotsChart(slotCounts) {
-      if (slotsChart) slotsChart.destroy();
-      const entries = Object.entries(slotCounts).sort((a,b)=> a[0].localeCompare(b[0]));
-      const labels = entries.map(([h])=>h);
-      const vals = entries.map(([_,v])=>v);
-      const ctx = document.getElementById('slotsChart');
-      slotsChart = new Chart(ctx, { type: 'bar',
-        data: { labels, datasets: [{ label:'Meetings', data: vals, borderRadius: 8 }] },
-        options: { maintainAspectRatio: false, responsive: true, scales: { y:{beginAtZero:true} } } });
-    }
-    function drawDowChart(dowCounts) {
-      if (dowChart) dowChart.destroy();
-      const order = ['Mon','Tue','Wed','Thu','Fri','Sat','Sun'];
-      const labels = order;
-      const vals = labels.map(d => dowCounts[d] || 0);
-      const ctx = document.getElementById('dowChart');
-      dowChart = new Chart(ctx, { type: 'radar',
-        data: { labels, datasets: [{ label:'Meetings', data: vals }] },
-        options: { maintainAspectRatio: false, responsive: true } });
-    }
-
-    // ======== Rendering ========
-    function renderStats(rows) {
-      const total = rows.length;
-      const totalMinutes = rows.reduce((s, r) => s + (Number(r.zoom_minutes)||0), 0);
-      const hours = Math.round(totalMinutes / 60);
-      const avg = total ? Math.round(totalMinutes / total) : 0;
-      const nos = rows.filter(r => (r.status||'').toLowerCase()==='no-show' || (r.no_show||'').toString().toLowerCase()==='true').length;
-      const nosRate = total ? Math.round(nos*100/total) : 0;
-
-      document.getElementById('totalMeetings').textContent = fmt(total);
-      document.getElementById('hours').textContent = fmt(hours);
-      document.getElementById('avg').textContent = fmt(avg) + 'm';
-      document.getElementById('noshow').textContent = fmt(nosRate) + '%';
-    }
-
-    function groupByDay(rows) {
-      const m = new Map();
-      for (const r of rows) {
-        const d = new Date(r.start_time || r.created_at || Date.now());
-        const label = d.toLocaleDateString(undefined, { month:'short', day:'numeric' });
-        m.set(label, (m.get(label)||0)+1);
-      }
-      return Array.from(m.entries()).map(([label,count])=>({label,count}));
-    }
-    function countTopics(rows) {
-      const obj = {};
-      for (const r of rows) {
-        const t = (r.question_2_topic || 'Other').trim();
-        obj[t] = (obj[t]||0)+1;
-      }
-      return obj;
-    }
-    function countHourSlots(rows) {
-      const obj = {};
-      for (const r of rows) {
-        const d = toDate(r.start_time || r.created_at);
-        if (!d) continue;
-        const label = d.toLocaleTimeString([], { hour: 'numeric' });
-        obj[label] = (obj[label]||0)+1;
-      }
-      return obj;
-    }
-    function countDOW(rows) {
-      const obj = {};
-      for (const r of rows) {
-        const d = toDate(r.start_time || r.created_at);
-        if (!d) continue;
-        const w = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'][d.getDay()];
-        obj[w] = (obj[w]||0)+1;
-      }
-      return obj;
-    }
-
-    function renderTable(rows) {
-      const tb = document.getElementById('tbody');
-      tb.innerHTML = '';
-      const sorted = rows.slice().sort((a,b)=> (b.start_time||'').localeCompare(a.start_time||''));
-      const max = Math.min(100, sorted.length);
-      for (let i=0;i<max;i++) {
-        const r = sorted[i];
-        const d = toDate(r.start_time || r.created_at);
-        const when = d ? d.toLocaleString() : '';
-        const topic = r.question_2_topic || '—';
-        const zm = Number(r.zoom_minutes)||0;
-        const st = (r.status||'').toLowerCase();
-        const badge = statusBadge(st);
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td>${when}</td>
-          <td>${r.attendee_name || '—'}</td>
-          <td>${r.attendee_email || '—'}</td>
-          <td>${topic}</td>
-          <td>${badge}</td>
-          <td>${zm ? (zm + 'm') : '—'}</td>
-          <td>
-            <button class="btn warn" data-uuid="${r.event_uuid || ''}" data-status="${st}">Mark No-Show</button>
-          </td>
-        `;
-        tb.appendChild(tr);
-      }
-      document.getElementById('tableInfo').textContent = `${fmt(sorted.length)} total • showing ${fmt(Math.min(100, sorted.length))}`;
-      tb.querySelectorAll('button[data-uuid]').forEach(btn => {
-        btn.addEventListener('click', () => markNoShow(btn.getAttribute('data-uuid')));
-      });
-    }
-
-    async function markNoShow(uuid) {
-      if (!uuid) return;
-      try {
-        const url = `${GAS_URL}?action=markNoShow&uuid=${encodeURIComponent(uuid)}`;
-        const resp = await fetchJSONOrJSONP(url);
-        if (resp && resp.ok) {
-          // Reload to update top counts and table status
-          load(true);
-        } else {
-          alert('Failed to mark no-show.');
-        }
-      } catch (e) {
-        alert('Failed to mark no-show.');
-      }
-    }
-
-    // ======== Main Load ========
-    async function load(force = false) {
-      document.getElementById('loadStatus').textContent = 'Loading…';
-      document.getElementById('rangeLabel').textContent = `Last ${RANGE_DAYS} days`;
-      try {
-        const data = await fetchJSONOrJSONP(`${GAS_URL}?action=fetch&rangeDays=${RANGE_DAYS}`);
-        let rows = (data && data.items) ? data.items : [];
-        document.getElementById('rowCount').textContent = `Loaded: ${fmt(rows.length)}`;
-        if (!rows.length) throw new Error('No rows returned');
-
-        // Extract Zoom IDs
-        const idsAll = unique(rows.map(r => extractZoomId(r.zoom_url || '')).filter(Boolean));
-
-        // Cache
-        let cache = force ? {} : readZoomCache();
-        const toFetch = idsAll.filter(id => !(id in cache));
-        let applied = 0;
-
-        // Fetch missing Zoom minutes in chunks
-        if (toFetch.length) {
-          for (let i=0; i<toFetch.length; i+=50) {
-            const chunk = toFetch.slice(i, i+50);
-            const res = await fetchJSONOrJSONP(`${GAS_URL}?action=zoomBatch&ids=${encodeURIComponent(chunk.join(','))}`);
-            if (res && res.map) {
-              Object.assign(cache, res.map);
-              writeZoomCache(cache);
-            }
-          }
-        }
-
-        // Merge and enforce completed if real minutes present
-        for (const r of rows) {
-          const id = extractZoomId(r.zoom_url || '');
-          if (id && cache[id]) {
-            r.zoom_minutes = Number(cache[id].minutes || 0);
-            if (r.zoom_minutes > 0) {
-              r.status = 'completed'; // your rule: any real Zoom time = completed
-            } else if ((r.no_show||'').toString().toLowerCase()==='true' || cache[id].no_show === true) {
-              r.status = 'no-show';
-            }
-            applied++;
-          } else {
-            r.zoom_minutes = Number(r.zoom_minutes || 0);
-            // If no Zoom info and in past, keep existing status (scheduled → stays unless toggled)
-          }
-        }
-
-        document.getElementById('zoomHits').textContent = `Zoom: ${fmt(applied)}/${fmt(idsAll.length)}`;
-        document.getElementById('s1').textContent = `${fmt(rows.length)} rows`;
-
-        // Render
-        renderStats(rows);
-        drawLineChart(groupByDay(rows));
-        drawTopicChart(countTopics(rows));
-        drawSlotsChart(countHourSlots(rows));
-        drawDowChart(countDOW(rows));
-        renderTable(rows);
-
-        document.getElementById('loadStatus').textContent = 'Ready';
-      } catch (e) {
-        console.error(e);
-        document.getElementById('loadStatus').textContent = 'Failed';
-        alert('Failed to load data. Check your GAS URL (must support JSONP).');
-      }
-    }
-
-    document.getElementById('refreshBtn').addEventListener('click', () => load(true));
-    load();
-  </script>
+  }
+  load();
+</script>
 </body>
 </html>
