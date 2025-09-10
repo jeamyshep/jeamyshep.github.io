@@ -1,81 +1,110 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Shepherd Meeting Analytics</title>
-<link rel="preconnect" href="https://cdn.jsdelivr.net" />
-<link rel="dns-prefetch" href="https://cdn.jsdelivr.net" />
-<style>
-  :root{
-    --bg:#645fd1; --card:#f3f5f9; --ink:#2e3440; --ink-weak:#697285;
-    --ok:#16a34a; --warn:#eab308; --bad:#ef4444; --chip:#e8eef8;
-  }
-  html,body{margin:0;background:linear-gradient(180deg,#706be6,#5c58c6);font:14px/1.45 ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto;}
-  .wrap{max-width:1080px;margin:22px auto;padding:6px 10px;}
-  .toolbar{display:flex;justify-content:space-between;align-items:center;background:#fff3;padding:18px 22px;border-radius:14px;color:#fff}
-  .h{display:flex;gap:10px;align-items:center}
-  .h .dot{width:12px;height:12px;border-radius:50%;background:#9ec5ff;box-shadow:0 0 0 3px #ffffff22 inset}
-  .grid{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;margin-top:18px}
-  .card{background:#ffffffe6;border-radius:16px;box-shadow:0 12px 30px #00000014;padding:18px}
-  .kpi .t{color:var(--ink-weak);text-transform:uppercase;font-weight:600;letter-spacing:.06em}
-  .kpi .v{font-size:34px;font-weight:700;margin-top:8px;color:var(--ink)}
-  .sub{font-size:12px;color:var(--ink-weak);margin-top:6px}
-  .row{display:grid;grid-template-columns:1.2fr .9fr;gap:18px;margin-top:18px}
-  canvas#line{width:100%!important;height:320px!important}
-  #topics{width:100%!important;height:320px!important}
-  table{width:100%;border-collapse:collapse}
-  th,td{padding:12px 10px;border-bottom:1px solid #eef1f6}
-  th{font-size:12px;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-weak);text-align:left;background:#f7f8fc}
-  .badge{display:inline-block;padding:6px 10px;border-radius:999px;font-weight:700;font-size:12px}
-  .scheduled{background:#e8f0ff;color:#2f5bd4}
-  .completed{background:#e8faef;color:#107a3a}
-  .canceled{background:#ffebe8;color:#b42318}
-  .noshow{background:#fff1c2;color:#8a6100}
-  .btn{padding:10px 14px;border-radius:12px;border:1px solid #f6a733;color:#8a4b00;background:#fff6e5;font-weight:700;cursor:pointer}
-  .btn[disabled]{opacity:.5;cursor:not-allowed}
-  .flex{display:flex;justify-content:space-between;align-items:center}
-  .muted{color:var(--ink-weak);font-size:12px}
-  .legend{display:flex;gap:14px;flex-wrap:wrap}
-  .chip{display:inline-flex;align-items:center;gap:6px;background:var(--chip);padding:4px 8px;border-radius:8px;font-size:12px}
-  .chip i{display:inline-block;width:10px;height:10px;border-radius:3px;background:#ccc}
-</style>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Shepherd Meeting Analytics</title>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net"/>
+  <link rel="preconnect" href="https://cdnjs.cloudflare.com"/>
+  <!-- Chart.js (no integrity attr to avoid CDN hash mismatches) -->
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+  <style>
+    :root{
+      --bg:#5f5fd6; --card:#f6f7fb; --ink:#1f2937; --muted:#6b7280;
+      --good:#22c55e; --bad:#ef4444; --warn:#f59e0b; --chip:#e5edff;
+      --ring:rgba(255,255,255,.25);
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0; font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,Inter,Arial;
+      color:var(--ink); background:
+      radial-gradient(1200px 600px at 10% -10%, #7C84FF 0%, #6A6DE3 40%, #595ac9 70%, #4f49b9 100%);
+      min-height:100vh; padding:20px;
+    }
+    .wrap{max-width:1220px;margin:0 auto}
+    .toolbar{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+    .title{display:flex;gap:10px;align-items:center;color:#fff}
+    .pill{background:rgba(255,255,255,.15);color:#fff;padding:8px 12px;border-radius:999px;font-size:12px}
+    .grid{display:grid;gap:16px}
+    .cards{grid-template-columns:repeat(4,minmax(0,1fr))}
+    .card{
+      background:linear-gradient(180deg,#fffffffc,#f8f9fffc);
+      border-radius:14px; padding:18px; box-shadow:0 10px 24px -12px var(--ring), inset 0 1px 0 #fff;
+    }
+    .kpi{font-size:40px; font-weight:800; letter-spacing:-.02em; margin-top:8px}
+    .note{color:var(--muted); font-size:12px}
+    .panes{grid-template-columns:1.1fr .9fr}
+    .pane{min-height:420px}
+    /* Chart areas */
+    .chart-box{position:relative; height:380px; }
+    #donutBox{ height:380px;}
+    canvas{max-width:100%;}
+    /* Table */
+    .table-card{padding:0}
+    table{width:100%;border-collapse:collapse}
+    thead th{font-size:12px;text-transform:uppercase;color:var(--muted);letter-spacing:.04em;background:#f2f4ff}
+    th,td{padding:16px 18px;border-bottom:1px solid #eef1ff}
+    tbody tr:hover{background:#fafbff}
+    .chip{display:inline-block;padding:6px 10px;border-radius:16px;font-weight:700;font-size:12px}
+    .chip.sch{background:#e7efff;color:#2563eb}
+    .chip.com{background:#e9fbe9;color:#15803d}
+    .chip.can{background:#fdecec;color:#b91c1c}
+    .chip.nos{background:#fff7e6;color:#a16207}
+    .btn{
+      border:2px solid #fbd5aa;background:#fff9f0;color:#a16207;
+      border-radius:14px;padding:10px 14px;font-weight:800;cursor:pointer
+    }
+    .btn[disabled]{opacity:.5;cursor:not-allowed}
+    .right-note{padding:12px 18px;color:var(--muted);font-size:12px;text-align:right}
+    .stat-sub{font-size:12px;color:var(--muted);margin-top:6px}
+  </style>
 </head>
 <body>
 <div class="wrap">
   <div class="toolbar">
-    <div class="h"><span class="dot"></span><strong>Shepherd Meeting Analytics</strong></div>
-    <div class="muted"><span id="rangeLabel">Last 90 days</span> • <span id="loadedCount">Loaded (0)</span></div>
-  </div>
-
-  <div class="grid">
-    <div class="card kpi"><div class="t">Total Meetings</div><div class="v" id="kpiTotal">—</div><div class="sub">Zoom lookups: <span id="zoomHits">0</span>/<span id="zoomTotal">0</span></div></div>
-    <div class="card kpi"><div class="t">Meeting Hours</div><div class="v" id="kpiHours">0.0</div><div class="sub">Zoom duration is used when available</div></div>
-    <div class="card kpi"><div class="t">Avg Duration (min)</div><div class="v" id="kpiAvg">0</div></div>
-    <div class="card kpi"><div class="t">No-Show Rate</div><div class="v" id="kpiNoShow">0%</div></div>
-  </div>
-
-  <div class="row">
-    <div class="card">
-      <div class="t" style="color:var(--ink-weak);font-weight:700">Meetings Over Time</div>
-      <canvas id="line"></canvas>
+    <div class="title">
+      <div style="width:14px;height:14px;border-radius:4px;background:#cbd5ff;box-shadow:0 0 0 3px rgba(255,255,255,.25) inset"></div>
+      <h2 style="margin:0;color:#fff">Shepherd Meeting Analytics</h2>
     </div>
-    <div class="card">
-      <div class="flex">
-        <div class="t" style="color:var(--ink-weak);font-weight:700">Meeting Topics Breakdown</div>
-      </div>
-      <canvas id="topics"></canvas>
+    <div style="display:flex;gap:8px">
+      <div class="pill" id="rangePill">Last 90 days</div>
+      <div class="pill" id="loadedPill">Loaded (0)</div>
     </div>
   </div>
 
-  <div class="card" style="margin-top:18px">
-    <div class="flex"><strong>Recent Meetings</strong><div class="muted">Zoom duration is used when available</div></div>
-    <div class="muted" style="margin:6px 0 10px">Zoom lookups: <span id="zoomHits2">0</span>/<span id="zoomTotal2">0</span></div>
+  <div class="grid cards">
+    <div class="card"><div>TOTAL MEETINGS</div><div class="kpi" id="kpiTotal">–</div><div class="note" id="zoomLookupNote">Zoom lookups: 0/0</div></div>
+    <div class="card"><div>MEETING HOURS</div><div class="kpi" id="kpiHours">0.0</div><div class="stat-sub">Zoom duration is used when available</div></div>
+    <div class="card"><div>AVG DURATION (MIN)</div><div class="kpi" id="kpiAvg">0</div></div>
+    <div class="card"><div>NO-SHOW RATE</div><div class="kpi" id="kpiNS">0%</div></div>
+  </div>
+
+  <div class="grid panes" style="margin-top:16px">
+    <div class="card pane">
+      <div style="margin-bottom:10px">Meetings Over Time</div>
+      <div class="chart-box"><canvas id="line"></canvas></div>
+    </div>
+    <div class="card pane">
+      <div style="margin-bottom:10px">Meeting Topics Breakdown</div>
+      <div id="donutBox"><canvas id="donut"></canvas></div>
+    </div>
+  </div>
+
+  <div class="card table-card" style="margin-top:16px">
+    <div class="right-note">Zoom duration is used when available</div>
+    <div style="padding:0 18px 8px;color:var(--muted);font-size:13px">Recent Meetings</div>
+    <div style="padding:0 18px 8px;color:var(--muted);font-size:12px" id="zoomCounter">Zoom lookups: 0/0</div>
     <table id="tbl">
       <thead>
-        <tr>
-          <th>Start</th><th>Attendee</th><th>Email</th><th>Topic</th><th>Status</th><th>Zoom Minutes</th><th>Actions</th>
-        </tr>
+      <tr>
+        <th style="width:180px">Start</th>
+        <th style="width:220px">Attendee</th>
+        <th style="width:260px">Email</th>
+        <th>Topic</th>
+        <th style="width:140px">Status</th>
+        <th style="width:120px">Zoom Minutes</th>
+        <th style="width:160px">Actions</th>
+      </tr>
       </thead>
       <tbody id="rows"></tbody>
     </table>
@@ -83,171 +112,251 @@
 </div>
 
 <script>
-/* ====== CONFIG — put your **single** Apps Script EXEC URL here ====== */
-const GAS_URL = 'https://script.google.com/macros/s/AKfycbwx6bSt1aENSY4aU1y28PvH3xMSV5B6TcpdL26rWV5v41eFbqdOtF6tMWvkl8bvFID8Gg/exec';
+/* ======= CONFIG ======= */
+const GAS_URL = 'https://script.google.com/macros/s/AKfycbwx6bSt1aENSY4aU1y28PvH3xMSV5B6TcpdL26rWV5v41eFbqdOtF6tMWvkl8bvFID8Gg/exec'; // <-- replace with your single Apps Script URL
+const RANGE_DAYS = 90;
 
-/* ====== tiny JSONP ====== */
-function jsonp(url){
+/* ======= MINI UTILS ======= */
+const $ = (sel) => document.querySelector(sel);
+const fmtDate = (iso) => {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  const ds = d.toLocaleDateString(undefined,{year:'numeric',month:'numeric',day:'numeric'});
+  const ts = d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'});
+  return `${ds}, ${ts}`;
+};
+const sleep = (ms)=> new Promise(r=>setTimeout(r,ms));
+
+/* JSONP helper (works even w/ CORS off) */
+function jsonp(url, params={}) {
   return new Promise((resolve,reject)=>{
     const cb = 'cb_' + Math.random().toString(36).slice(2);
     const s = document.createElement('script');
-    const sep = url.includes('?')?'&':'?';
-    s.src = url + sep + 'jsonp=' + cb;
-    s.onerror = ()=>reject(new Error('JSONP failed'));
+    const usp = new URLSearchParams({...params, jsonp:cb});
+    s.src = url + (url.includes('?')?'&':'?') + usp.toString();
+    s.async = true;
     window[cb] = (data)=>{ resolve(data); cleanup(); };
+    s.onerror = ()=>{ reject(new Error('JSONP failed')); cleanup(); };
     function cleanup(){ delete window[cb]; s.remove(); }
-    document.body.appendChild(s);
+    document.head.appendChild(s);
   });
 }
 
+/* ======= COLORS for topics (stable palette order) ======= */
 const TOPIC_COLORS = {
-  'Invoices':'#3b82f6','Forms':'#fb7185','Other':'#f59e0b','Reporting':'#fbbf24',
-  'Inventory':'#2dd4bf','Messaging/Client Communications':'#8b5cf6','SOAP':'#cbd5e1',
-  'Products':'#60a5fa','Reminders':'#f472b6','Scheduling':'#f59e0b','Clients/Patients':'#fde047'
+  'Invoices':'#4ea4ff', 'Forms':'#ff6e86', 'Other':'#ffad4d', 'Reporting':'#ffd56a',
+  'Inventory':'#42c2b8', 'Messaging/Client Communications':'#8166ff', 'SOAP':'#c9cfd6',
+  'Products':'#46a3ff', 'Reminders':'#ff6b82', 'Scheduling':'#ff9a3d', 'Clients/Patients':'#ffd76b',
+  'Unspecified':'#6e76f7'
 };
 
-let RAW = [];
-let ZMAP = {}; // id -> {minutes}
-let CH_LINE, CH_DONUT;
+/* ======= STATE ======= */
+let items = [];          // rows from GAS (fetch)
+let lineChart, donutChart;
 
-function fmtMin(n){ return n ? (n|0) + 'm' : '—'; }
-function clsStatus(s){ s=(s||'').toLowerCase(); if(s==='completed')return'completed'; if(s==='canceled')return'canceled'; if(s==='no-show')return'noshow'; return'scheduled'; }
-
-function extractId(zoom_url_cell){
-  // "Zoom URL: https://.../j/85172082988?pwd=..."
-  const m = String(zoom_url_cell||'').match(/zoom\.us\/j\/(\d{9,})/i);
-  return m ? m[1] : '';
+/* ======= RENDER HELPERS ======= */
+function badge(status){
+  const s = (status||'').toLowerCase();
+  if (s==='completed') return '<span class="chip com">Completed</span>';
+  if (s==='canceled')  return '<span class="chip can">Canceled</span>';
+  if (s==='no-show')   return '<span class="chip nos">No-Show</span>';
+  return '<span class="chip sch">Scheduled</span>';
+}
+function topicColor(name){
+  return TOPIC_COLORS[name] || TOPIC_COLORS['Unspecified'];
 }
 
-async function load(){
-  document.getElementById('rangeLabel').textContent = 'Last 90 days';
-  // 1) fetch rows
-  const data = await jsonp(`${GAS_URL}?action=fetch&rangeDays=90`);
-  if (data.error) throw new Error(data.error);
-  RAW = data.items || [];
-  document.getElementById('loadedCount').textContent = `Loaded (${RAW.length})`;
-
-  // 2) pull zoom ids
-  const ids = [...new Set(RAW.map(r=>extractId(r.zoom_url)).filter(Boolean))];
-  document.getElementById('zoomTotal').textContent = ids.length;
-  document.getElementById('zoomTotal2').textContent = ids.length;
-
-  // 3) ask server to enrich (also writes minutes to sheet)
-  if (ids.length){
-    const z = await jsonp(`${GAS_URL}?action=zoomBatch&ids=${encodeURIComponent(ids.join(','))}`);
-    ZMAP = z.map || {};
-    document.getElementById('zoomHits').textContent = z.hits||0;
-    document.getElementById('zoomHits2').textContent = z.hits||0;
-
-    // merge into RAW
-    RAW = RAW.map(r=>{
-      const id = extractId(r.zoom_url);
-      const minutes = (id && ZMAP[id] && ZMAP[id].minutes) ? ZMAP[id].minutes : (r.zoom_minutes||0);
-      const status = (r.no_show) ? 'No-Show'
-                   : (minutes>0) ? 'Completed'
-                   : (String(r.status_raw).toLowerCase()==='canceled' || r.canceled_at) ? 'Canceled'
-                   : 'Scheduled';
-      return {...r, zoom_minutes: minutes, status};
-    });
-  }
-
-  paint();
-}
-
-function paint(){
-  // KPIs
-  const total = RAW.length;
-  const minutesList = RAW.map(r=>r.zoom_minutes||0);
-  const minutesSum = minutesList.reduce((a,b)=>a+b,0);
-  const noShows = RAW.filter(r=>r.status==='No-Show').length;
-
-  document.getElementById('kpiTotal').textContent = total;
-  document.getElementById('kpiHours').textContent = (minutesSum/60).toFixed(1);
-  document.getElementById('kpiAvg').textContent = total ? Math.round(minutesSum/total) : 0;
-  document.getElementById('kpiNoShow').textContent = total ? Math.round(noShows*100/total)+'%' : '0%';
-
-  // Table
-  const tbody = document.getElementById('rows'); tbody.innerHTML='';
-  RAW.sort((a,b)=>a.start_time.localeCompare(b.start_time)).reverse();
-  for (const r of RAW){
-    const tr = document.createElement('tr');
-    tr.innerHTML = `
-      <td>${new Date(r.start_time).toLocaleString()}</td>
-      <td>${r.attendee_name||''}</td>
-      <td>${r.attendee_email||''}</td>
-      <td>${r.topic||'—'}</td>
-      <td><span class="badge ${clsStatus(r.status)}">${r.status}</span></td>
-      <td>${fmtMin(r.zoom_minutes)}</td>
-      <td>
-        <button class="btn" data-uuid="${r.event_uuid}" data-ns="${r.status==='No-Show'?'false':'true'}">
-          ${r.status==='No-Show'?'Unmark No-Show':'Mark No-Show'}
-        </button>
-      </td>`;
-    tbody.appendChild(tr);
-  }
-  tbody.onclick = async (e)=>{
-    const btn = e.target.closest('button.btn'); if (!btn) return;
-    btn.disabled = true; btn.textContent = 'Saving…';
-    const uuid = btn.getAttribute('data-uuid');
-    const set = btn.getAttribute('data-ns')==='true';
-    const res = await jsonp(`${GAS_URL}?action=markNoShow&uuid=${encodeURIComponent(uuid)}&set=${set}`);
-    if (!res || res.error){ btn.textContent='Error'; btn.disabled=false; return; }
-    // reflect in RAW
-    RAW = RAW.map(r => r.event_uuid===uuid ? {...r, no_show:set, status: set?'No-Show':(r.zoom_minutes>0?'Completed':'Scheduled')} : r);
-    paint(); // re-render KPIs + table
-  };
-
-  // Charts
-  renderCharts();
-}
-
-function renderCharts(){
-  // destroy any previous charts (prevents canvas growth)
-  if (CH_LINE){ CH_LINE.destroy(); }
-  if (CH_DONUT){ CH_DONUT.destroy(); }
-
-  // Line: meetings per day
-  const byDay = {};
-  RAW.forEach(r=>{
-    const k = new Date(r.start_time).toISOString().slice(0,10);
-    byDay[k] = (byDay[k]||0)+1;
-  });
-  const labels = Object.keys(byDay).sort();
-  const values = labels.map(k=>byDay[k]);
-
-  CH_LINE = new Chart(document.getElementById('line').getContext('2d'), {
+/* Build and keep a stable y-scale so the line canvas never “grows” */
+function renderLine(series){
+  const ctx = document.getElementById('line').getContext('2d');
+  if (lineChart) lineChart.destroy();
+  lineChart = new Chart(ctx, {
     type:'line',
-    data:{ labels, datasets:[{ label:'Meetings', data:values, tension:.35, pointRadius:3, borderWidth:3 }] },
+    data:{
+      labels: series.map(p=>p.x),
+      datasets:[{
+        label:'Completed / day',
+        borderColor:'#4d6bff',
+        backgroundColor:'rgba(77,107,255,.12)',
+        tension:.35,
+        data: series.map(p=>p.y),
+        pointRadius:2
+      }]
+    },
     options:{
-      responsive:true, maintainAspectRatio:false,
-      scales:{ y:{ beginAtZero:true, ticks:{ precision:0 } } },
-      plugins:{ legend:{ display:false } }
+      maintainAspectRatio:false,
+      responsive:true,
+      scales:{
+        y:{ suggestedMin:0, suggestedMax:Math.max(6, ...series.map(p=>p.y)) }
+      },
+      plugins:{ legend:{display:false} }
     }
   });
+}
 
-  // Donut: topics
-  const counts = {};
-  RAW.forEach(r=>{
-    const t = r.topic || 'Other';
-    counts[t] = (counts[t]||0)+1;
-  });
-  const tLabels = Object.keys(counts).sort();
-  const tData = tLabels.map(k=>counts[k]);
-  const tColors = tLabels.map(k=>TOPIC_COLORS[k]||'#94a3b8');
-
-  CH_DONUT = new Chart(document.getElementById('topics').getContext('2d'), {
+function renderDonut(topicCounts){
+  const ctx = document.getElementById('donut').getContext('2d');
+  if (donutChart) donutChart.destroy();
+  const labels = Object.keys(topicCounts);
+  const values = labels.map(k=>topicCounts[k]);
+  const colors = labels.map(topicColor);
+  donutChart = new Chart(ctx,{
     type:'doughnut',
-    data:{ labels:tLabels, datasets:[{ data:tData, backgroundColor:tColors, hoverOffset:4, borderWidth:0 }] },
-    options:{ plugins:{ legend:{ position:'top', labels:{ usePointStyle:true, pointStyle:'rectRounded' } } } }
+    data:{ labels, datasets:[{ data:values, backgroundColor:colors, borderWidth:1 }]},
+    options:{
+      maintainAspectRatio:false,
+      cutout:'58%',
+      plugins:{ legend:{ position:'top', labels:{ usePointStyle:true, boxWidth:14, padding:14 } } }
+    }
   });
 }
 
-load().catch(err=>{
-  console.error(err);
-  alert('Failed to load data. Check your GAS URL and that it supports JSONP.');
-});
+/* ======= TABLE ======= */
+function buildTable(){
+  const tb = $('#rows'); tb.innerHTML='';
+  items.forEach(it=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${fmtDate(it.start_time)}</td>
+      <td>${it.attendee_name||'—'}</td>
+      <td>${it.attendee_email||'—'}</td>
+      <td>${it.topic||'Unspecified'}</td>
+      <td>${badge(it.status)}</td>
+      <td class="zmin" data-uuid="${it.event_uuid}">${it.zoom_minutes>0 ? (it.zoom_minutes+'m') : '—'}</td>
+      <td>
+        <button class="btn act" data-uuid="${it.event_uuid}" data-current="${it.status==='No-Show'}">
+          ${it.status==='No-Show' ? 'Unmark<br/>No-Show' : 'Mark No-Show'}
+        </button>
+      </td>`;
+    tb.appendChild(tr);
+  });
+
+  // Attach click handlers
+  document.querySelectorAll('.btn.act').forEach(btn=>{
+    btn.addEventListener('click', async (e)=>{
+      const b = e.currentTarget;
+      const uuid = b.dataset.uuid;
+      const isOn = b.dataset.current === 'true';
+      b.disabled = true; b.textContent = isOn ? 'Unmarking…' : 'Marking…';
+      try{
+        const res = await jsonp(GAS_URL, { action:'markNoShow', uuid, set: (!isOn).toString() });
+        if (res && res.ok){
+          // update local state + UI
+          const row = items.find(x=>x.event_uuid===uuid);
+          if (row){
+            row.no_show = !isOn;
+            row.status  = row.no_show ? 'No-Show' : (row.zoom_minutes>0? 'Completed':'Scheduled');
+          }
+          refreshStatsAndRows();
+        } else {
+          alert('Failed: ' + (res && res.error ? res.error : 'unknown'));
+        }
+      }catch(err){
+        console.error(err); alert('Network problem marking No-Show.');
+      }finally{
+        b.disabled = false;
+      }
+    });
+  });
+}
+
+/* ======= STATS, TOPIC COUNTS, LINE SERIES ======= */
+function refreshStatsAndRows(){
+  // table rows statuses already in items
+  buildTable();
+
+  const total = items.length;
+  const ns    = items.filter(i=>i.status==='No-Show').length;
+  const withZoom = items.filter(i=>i.zoom_minutes>0);
+  const minutes = withZoom.reduce((a,b)=>a + (b.zoom_minutes||0), 0);
+  const avg = withZoom.length ? Math.round(minutes/withZoom.length) : 0;
+
+  $('#kpiTotal').textContent = total;
+  $('#kpiNS').textContent    = (total? Math.round((ns/total)*100):0) + '%';
+  $('#kpiAvg').textContent   = avg;
+  $('#kpiHours').textContent = (minutes/60).toFixed(1);
+
+  // topics
+  const topicCounts = {};
+  items.forEach(i=>{
+    const t = i.topic && i.topic.trim() ? i.topic.trim() : 'Unspecified';
+    topicCounts[t] = (topicCounts[t]||0) + 1;
+  });
+  renderDonut(topicCounts);
+
+  // simple per-day series
+  const byDay = {};
+  items.forEach(i=>{
+    if (!i.start_time) return;
+    const d = i.start_time.slice(0,10);
+    byDay[d] = (byDay[d]||0) + 1;
+  });
+  const series = Object.keys(byDay).sort().map(d=>({x:d,y:byDay[d]}));
+  renderLine(series);
+}
+
+/* ======= ZOOM ENRICHMENT ======= */
+/* pulls minutes from Zoom for any row lacking minutes, using the meeting id parsed from zoom_url */
+async function enrichZoom(){
+  const tokens = [];
+  const idFromZoomUrl = (s) => {
+    if (!s) return '';
+    const m = String(s).match(/zoom\.us\/j\/(\d{9,})/i);
+    return m ? m[1] : '';
+  };
+
+  items.forEach(it=>{
+    if (!it.zoom_minutes || it.zoom_minutes<=0){
+      const id = idFromZoomUrl(it.zoom_url||'');
+      if (id) tokens.push(id);
+    }
+  });
+  const uniq = [...new Set(tokens)];
+  $('#zoomLookupNote').textContent = `Zoom lookups: 0/${uniq.length}`;
+  $('#zoomCounter').textContent    = `Zoom lookups: 0/${uniq.length}`;
+  if (uniq.length===0) return;
+
+  // batch request to GAS (server will write minutes back to the sheet as well)
+  try{
+    const res = await jsonp(GAS_URL, { action:'zoomBatch', ids: uniq.join(',') });
+    if (!res || !res.map) return;
+
+    let hit=0;
+    items.forEach(it=>{
+      const id = idFromZoomUrl(it.zoom_url||'');
+      if (id && res.map[id]){
+        it.zoom_minutes = res.map[id].minutes || 0;
+        if (it.zoom_minutes>0 && it.status!=='No-Show') it.status='Completed';
+        hit++;
+      }
+    });
+
+    $('#zoomLookupNote').textContent = `Zoom lookups: ${hit}/${res.total||uniq.length}`;
+    $('#zoomCounter').textContent    = `Zoom lookups: ${hit}/${res.total||uniq.length}`;
+    refreshStatsAndRows();
+  }catch(err){
+    console.error('Zoom batch failed', err);
+  }
+}
+
+/* ======= LOAD ======= */
+async function load(){
+  // data
+  $('#rangePill').textContent = `Last ${RANGE_DAYS} days`;
+  try{
+    const data = await jsonp(GAS_URL, { action:'fetch', rangeDays: RANGE_DAYS });
+    items = (data && data.items) ? data.items : [];
+    $('#loadedPill').textContent = `Loaded (${items.length})`;
+    refreshStatsAndRows();
+    // kick off Zoom enrichment (non-blocking)
+    enrichZoom();
+  }catch(err){
+    console.error(err);
+    alert('Failed to load data. Check your GAS URL and that it supports JSONP.');
+  }
+}
+
+document.addEventListener('DOMContentLoaded', load);
 </script>
-<!-- No SRI to avoid blocking -->
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 </body>
 </html>
