@@ -1,344 +1,271 @@
 <!doctype html>
 <html lang="en">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Shepherd Meeting Analytics</title>
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1"/>
+<title>Shepherd Connect Analytics</title>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/modern-normalize/2.0.0/modern-normalize.min.css" crossorigin="anonymous" referrerpolicy="no-referrer"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js" crossorigin="anonymous"></script>
 <style>
-  :root{
-    --bg:#6b70e0;
-    --card:#f6f7fb;
-    --ink:#2b3340;
-    --muted:#7a8799;
-    --green:#22c55e; --red:#ef4444; --blue:#3b82f6; --orange:#f59e0b;
-    --pill:#e9eef7;
-  }
-  *{box-sizing:border-box}
-  html,body{margin:0;height:100%;font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial}
-  body{background:linear-gradient(180deg,#6b70e0 0%,#6b70e0 60%,#5e66db 100%);color:var(--ink)}
-  .wrap{max-width:1180px;margin:28px auto;padding:0 18px}
-  .header{background:#eef1fb;border-radius:18px;padding:18px 20px 16px;display:flex;align-items:center;justify-content:space-between;box-shadow:0 8px 28px rgba(0,0,0,.08)}
-  .h-left{display:flex;align-items:center;gap:12px}
-  .logo{width:28px;height:28px;border-radius:8px;background:linear-gradient(135deg,#6b70e0,#9fa3ff)}
-  .title{font-weight:700;font-size:22px}
-  .badge{font-size:12px;border-radius:999px;padding:6px 10px;background:#e8eefc;color:#2b3340}
-  .grid{display:grid;grid-template-columns:repeat(12,1fr);gap:16px;margin-top:16px}
-  .card{background:var(--card);border-radius:16px;padding:16px;box-shadow:0 8px 24px rgba(0,0,0,.10)}
-  .kpi{grid-column:span 3}
-  .kpi .label{color:var(--muted);font-size:12px;letter-spacing:.02em}
-  .kpi .value{font-size:32px;font-weight:700;margin-top:6px}
-  .span-8{grid-column:span 8}
-  .span-4{grid-column:span 4}
-  .card h3{margin:0 0 12px 0;font-size:16px}
-  canvas{max-width:100%}
-  table{width:100%;border-collapse:separate;border-spacing:0 10px}
-  th{font-size:12px;color:var(--muted);text-align:left;padding:0 12px}
-  td{background:#fff;padding:16px 12px;border-top:1px solid #eef1f7;border-bottom:1px solid #eef1f7}
-  tr td:first-child{border-left:1px solid #eef1f7;border-top-left-radius:12px;border-bottom-left-radius:12px}
-  tr td:last-child{border-right:1px solid #eef1f7;border-top-right-radius:12px;border-bottom-right-radius:12px}
-  .pill{display:inline-flex;align-items:center;gap:6px;border-radius:999px;padding:6px 10px;font-weight:600;font-size:12px}
-  .pill-green{background:#dcfce7;color:#0f5132}
-  .pill-blue{background:#e6f0ff;color:#1d4ed8}
-  .pill-red{background:#ffe4e6;color:#991b1b}
-  .pill-orange{background:#fff1db;color:#9a3412}
-  .btn{font-size:13px;border-radius:10px;border:1px solid #f7c99a;background:#fff7ed;color:#9a3412;padding:8px 10px;font-weight:700;cursor:pointer}
-  .btn[disabled]{opacity:.6;cursor:not-allowed}
-  .muted{color:var(--muted)}
-  .right{display:flex;align-items:center;gap:10px}
-  .small{font-size:12px}
-  .sr{position:absolute;left:-9999px}
+  :root{--bg:#5f61d0;--panel:#f4f5f9;--ink:#2b2f42;--ink-2:#5b6275;--ok:#36c692;--warn:#f5b74d;--bad:#f07474;--chip:#e9efff;--chip-ink:#3a60d8;--muted:#a6aec7}
+  body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Helvetica,Arial,sans-serif;background:linear-gradient(180deg,#6769dd,#5758c8);color:var(--ink);padding:20px}
+  .wrap{max-width:1200px;margin:0 auto}
+  .card{background:var(--panel);border-radius:18px;box-shadow:0 4px 14px rgba(0,0,0,.12);padding:18px}
+  .row{display:grid;grid-template-columns:repeat(12,1fr);gap:16px}
+  .h{display:flex;align-items:center;justify-content:space-between;margin-bottom:12px}
+  h1{font-size:28px;margin:0}
+  .badge{background:#eaf2ff;color:#2544c3;border-radius:999px;padding:6px 10px;font-weight:600;font-size:12px}
+  .kpi{display:flex;flex-direction:column;gap:8px}
+  .kpi .v{font-size:32px;font-weight:700}
+  .muted{color:var(--muted);font-size:12px}
+  .table{width:100%;border-collapse:collapse}
+  .table th,.table td{padding:12px 10px;border-bottom:1px solid #e7e9f2;font-size:14px}
+  .chip{display:inline-block;padding:6px 10px;border-radius:999px;font-weight:600;font-size:12px}
+  .chip.ok{background:#eafaf3;color:#0b7a51}
+  .chip.bad{background:#ffecee;color:#a62828}
+  .chip.info{background:#e9efff;color:#2a4cd4}
+  button.tag{border:1px solid #f0a15a;color:#a45200;background:#fff5e8;border-radius:10px;padding:6px 10px;cursor:pointer;font-weight:700}
+  button.tag[disabled]{opacity:.5;cursor:default}
+  canvas{max-width:100%;height:320px}
 </style>
 </head>
 <body>
-  <div class="wrap">
-    <div class="header">
-      <div class="h-left">
-        <div class="logo" aria-hidden="true"></div>
-        <div class="title">Shepherd Meeting Analytics</div>
-      </div>
-      <div class="right">
-        <span id="rangeLabel" class="badge">Last 365 days</span>
-        <span id="loadedBadge" class="badge">Loaded (0)</span>
-      </div>
-    </div>
-
-    <div class="grid">
-      <div class="card kpi">
-        <div class="label">TOTAL MEETINGS</div>
-        <div id="kpiTotal" class="value">—</div>
-        <div id="zoomCounter" class="small muted">Zoom lookups: 0/0</div>
-      </div>
-      <div class="card kpi">
-        <div class="label">MEETING HOURS</div>
-        <div id="kpiHours" class="value">0.0</div>
-      </div>
-      <div class="card kpi">
-        <div class="label">AVG DURATION (MIN)</div>
-        <div id="kpiAvg" class="value">0</div>
-      </div>
-      <div class="card kpi">
-        <div class="label">NO-SHOW RATE</div>
-        <div id="kpiNoShow" class="value">0%</div>
-      </div>
-
-      <div class="card span-8">
-        <h3>Meetings Over Time</h3>
-        <canvas id="lineChart"></canvas>
-      </div>
-      <div class="card span-4">
-        <h3>Meeting Topics Breakdown</h3>
-        <canvas id="topicChart" width="380" height="380" aria-label="Topic distribution"></canvas>
-      </div>
-
-      <div class="card" style="grid-column:1/-1;">
-        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:8px">
-          <h3 style="margin:0">Recent Meetings</h3>
-          <div class="small muted">Zoom duration is used when available</div>
-        </div>
-        <div class="small muted" id="zoomProgress" style="margin:4px 0 8px 0">Zoom lookups: 0/0</div>
-        <div style="overflow:auto">
-          <table id="tbl">
-            <thead>
-              <tr>
-                <th>START</th>
-                <th>ATTENDEE</th>
-                <th>EMAIL</th>
-                <th>TOPIC</th>
-                <th>STATUS</th>
-                <th>ZOOM MINUTES</th>
-                <th>ACTIONS</th>
-              </tr>
-            </thead>
-            <tbody id="tbody"></tbody>
-          </table>
-        </div>
-      </div>
+<div class="wrap">
+  <div class="card h" style="margin-bottom:16px">
+    <h1>Shepherd Meeting Analytics</h1>
+    <div>
+      <span class="badge" id="rangeTag">Last 90 days</span>
+      <span class="badge" id="loadedTag">Loaded (0)</span>
     </div>
   </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.3/dist/chart.umd.min.js"></script>
+  <div class="row">
+    <div class="card kpi" style="grid-column:span 3">
+      <div>Total meetings</div>
+      <div class="v" id="kpiTotal">—</div>
+      <div class="muted">Zoom lookups: <span id="zoomStats">0/0</span></div>
+    </div>
+    <div class="card kpi" style="grid-column:span 3">
+      <div>Meeting hours</div>
+      <div class="v" id="kpiHours">0.0</div>
+      <div class="muted">Zoom duration is used when available</div>
+    </div>
+    <div class="card kpi" style="grid-column:span 3">
+      <div>Avg duration (min)</div>
+      <div class="v" id="kpiAvg">0</div>
+    </div>
+    <div class="card kpi" style="grid-column:span 3">
+      <div>No-show rate</div>
+      <div class="v" id="kpiNoShow">0%</div>
+    </div>
+  </div>
+
+  <div class="row" style="margin-top:16px">
+    <div class="card" style="grid-column:span 7">
+      <div style="margin-bottom:8px;font-weight:700">Meetings Over Time</div>
+      <canvas id="line"></canvas>
+    </div>
+    <div class="card" style="grid-column:span 5">
+      <div style="margin-bottom:8px;font-weight:700">Meeting Topics Breakdown</div>
+      <canvas id="donut"></canvas>
+    </div>
+  </div>
+
+  <div class="card" style="margin-top:16px">
+    <div class="h">
+      <div style="font-weight:700">Recent Meetings</div>
+      <div class="muted">Zoom duration is used when available</div>
+    </div>
+    <div class="muted">Zoom lookups: <span id="zoomStats2">0/0</span></div>
+    <table class="table" id="tbl">
+      <thead>
+        <tr>
+          <th>Start</th><th>Attendee</th><th>Email</th><th>Topic</th><th>Status</th><th>Zoom Minutes</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+</div>
+
 <script>
-  // ============= CONFIG =============
-  const GAS_URL = 'https://script.google.com/macros/s/AKfycby8A7NkrN20rgs5gJJYUvxg41DcXeRKcaIavaEU5WnigCAnOkBwpGX_M-yvl6xJOB7FEQ/exec'; // <-- replace with your deployed /exec URL
-  const RANGE_DAYS = 90;
+const GAS_URL = 'https://script.google.com/macros/s/AKfycby7NALgednviY0j2qeF2va9nsgHT7DLe-MKiMYyqG6jp7R0Gqpe1gMBqpBeSimm9V7x4A/exec'; // <- your single /exec URL
+const RANGE_DAYS = 90;
 
-  // Topic palette (stable, unique colors)
-  const TOPIC_COLORS = {
-    'SOAP':'#6366f1',
-    'Clients/Patients':'#f97316',
-    'Scheduling':'#22c55e',
-    'Invoices':'#0ea5e9',
-    'Messaging/Client Communications':'#a855f7',
-    'Forms':'#94a3b8',
-    'Reporting':'#f59e0b',
-    'Products':'#2563eb',
-    'Inventory':'#10b981',
-    'Bulk Edit':'#ef4444',
-    'Reminders':'#fb7185',
-    'Other':'#fda4af',
-    'Unspecified':'#64748b'
-  };
+let ITEMS = [];
+let zoomHits = 0, zoomTotal = 0;
 
-  // ============= STATE =============
-  let APP_ITEMS = [];
-  let lineChart, topicChart;
+// JSONP helper
+function jjsonp(url){
+  return new Promise((resolve,reject)=>{
+    const cb = 'gas_cb_' + Math.random().toString(36).slice(2);
+    const s = document.createElement('script');
+    const t = setTimeout(()=>{ cleanup(); reject(new Error('JSONP timeout')); }, 15000);
+    function cleanup(){ clearTimeout(t); s.remove(); delete window[cb]; }
+    window[cb]= (data)=>{ cleanup(); resolve(data); };
+    s.src = url + (url.includes('?')?'&':'?') + 'jsonp=' + cb;
+    s.onerror = ()=>{ cleanup(); reject(new Error('JSONP failed')); };
+    document.body.appendChild(s);
+  });
+}
 
-  // ============= HELPERS =============
-  function fmtDate(d){ return d.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}) }
-  function fmtTime(d){ return d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'}) }
-  function toDate(s){ const d = new Date(s); return isNaN(d)? null : d }
-  function jsonp(url,timeout=12000){
-    return new Promise((resolve,reject)=>{
-      const name = 'cb_'+Math.random().toString(36).slice(2);
-      const s = document.createElement('script');
-      const sep = url.includes('?')?'&':'?';
-      s.src = `${url}${sep}jsonp=${name}`;
-      window[name] = (data)=>{ clean(); resolve(data); };
-      s.onerror = ()=>{ clean(); reject(new Error('JSONP failed')); };
-      const t = setTimeout(()=>{ clean(); reject(new Error('JSONP timeout')); },timeout);
-      function clean(){
-        clearTimeout(t);
-        delete window[name];
-        if (s && s.parentNode) s.parentNode.removeChild(s);
-      }
-      document.head.appendChild(s);
-    });
-  }
+function fmtMins(n){ return n>0 ? (n+'m') : '—'; }
 
-  // badge
-  function badge(status){
-    const s = (status||'').toLowerCase();
-    if (s==='completed') return `<span class="pill pill-green">Completed</span>`;
-    if (s==='no-show') return `<span class="pill pill-orange">No-Show</span>`;
-    if (s==='canceled' || s==='cancelled') return `<span class="pill pill-red">Canceled</span>`;
-    return `<span class="pill pill-blue">Scheduled</span>`;
-  }
+// Renderers
+function renderKPIs(){
+  const total = ITEMS.length;
+  document.getElementById('kpiTotal').textContent = total;
+  document.getElementById('loadedTag').textContent = `Loaded (${total})`;
 
-  function toast(msg,isErr){
-    const el = document.createElement('div');
-    el.textContent = msg;
-    el.style.cssText='position:fixed;right:16px;bottom:16px;padding:10px 14px;border-radius:10px;color:#1f2937;background:'+(isErr?'#fecaca':'#bbf7d0')+';box-shadow:0 8px 24px rgba(0,0,0,.12);font:500 14px';
-    document.body.appendChild(el);
-    setTimeout(()=>{ el.style.opacity='0'; el.style.transform='translateY(6px)'; }, 1600);
-    setTimeout(()=>{ el.remove(); }, 2200);
-  }
+  const mins = ITEMS.map(x => x.zoom_minutes>0?x.zoom_minutes:0);
+  const sum  = mins.reduce((a,b)=>a+b,0);
+  const hours = (sum/60).toFixed(1);
+  const avg = total ? Math.round(sum/total) : 0;
+  document.getElementById('kpiHours').textContent = hours;
+  document.getElementById('kpiAvg').textContent = avg;
 
-  // ============= RENDER =============
-  function renderTable(items){
-    const tb = document.getElementById('tbody');
-    tb.innerHTML='';
-    const frag = document.createDocumentFragment();
-    items.forEach(it=>{
-      const tr = document.createElement('tr');
-      const start = toDate(it.start_time);
-      const zmin = it.zoom_minutes>0 ? `${it.zoom_minutes}m` : '—';
-      tr.innerHTML = `
-        <td>${start? fmtDate(start)+', '+fmtTime(start) : ''}</td>
-        <td>${it.attendee_name||''}</td>
-        <td class="muted small">${it.attendee_email||''}</td>
-        <td>${it.topic||'Unspecified'}</td>
-        <td data-col="status">${badge(it.status)}</td>
-        <td>${zmin}</td>
-        <td style="text-align:right">
-          <button class="btn" onclick="markNoShowClick(this,'${String(it.event_uuid)}')">Mark No-Show</button>
-        </td>
-      `;
-      frag.appendChild(tr);
-    });
-    tb.appendChild(frag);
-  }
+  const noShows = ITEMS.filter(x => (String(x.status).toLowerCase()==='no-show')).length;
+  const rate = total? Math.round(noShows*100/total) : 0;
+  document.getElementById('kpiNoShow').textContent = rate + '%';
 
-  function recomputeAndRenderTop(items){
-    const total = items.length;
-    // completed := has zoom_minutes > 0
-    const withZoom = items.filter(x=> Number(x.zoom_minutes)>0);
-    const mins = withZoom.reduce((a,b)=> a + Number(b.zoom_minutes||0), 0);
-    const avg = withZoom.length ? Math.round(mins/withZoom.length) : 0;
-    const noShows = items.filter(x=> (x.no_show||'').toString().toLowerCase()==='yes' || (x.status||'').toLowerCase()==='no-show').length;
+  const zs = `${zoomHits}/${zoomTotal}`;
+  document.getElementById('zoomStats').textContent = zs;
+  document.getElementById('zoomStats2').textContent = zs;
+}
 
-    document.getElementById('kpiTotal').textContent = total;
-    document.getElementById('kpiHours').textContent = (mins/60).toFixed(1);
-    document.getElementById('kpiAvg').textContent = avg;
-    document.getElementById('kpiNoShow').textContent = total? Math.round(noShows*100/total)+'%' : '0%';
-    document.getElementById('zoomCounter').textContent = `Zoom lookups: ${withZoom.length}/${total}`;
-    document.getElementById('zoomProgress').textContent = `Zoom lookups: ${withZoom.length}/${total}`;
-    document.getElementById('loadedBadge').textContent = `Loaded (${total})`;
-  }
+function renderTable(){
+  const tb = document.getElementById('tbody');
+  tb.innerHTML = '';
+  ITEMS.forEach((x)=>{
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${new Date(x.start_time).toLocaleString()}</td>
+      <td>${x.attendee_name||''}</td>
+      <td>${x.attendee_email||''}</td>
+      <td>${x.topic||'—'}</td>
+      <td>${badge(x.status)}</td>
+      <td data-uuid="${x.event_uuid}" class="zoommins">${fmtMins(x.zoom_minutes||0)}</td>
+      <td>${actionCell(x)}</td>
+    `;
+    tb.appendChild(tr);
+  });
+}
+function badge(st){
+  const s = String(st||'Scheduled');
+  if (s==='Completed') return `<span class="chip ok">Completed</span>`;
+  if (s==='Canceled' || s==='Cancelled') return `<span class="chip bad">Canceled</span>`;
+  if (s==='No-Show') return `<span class="chip bad">No-Show</span>`;
+  return `<span class="chip info">Scheduled</span>`;
+}
+function actionCell(x){
+  const dis = (String(x.status).toLowerCase()==='no-show') ? 'disabled' : '';
+  return `<button class="tag" ${dis} data-action="noshow" data-uuid="${x.event_uuid}">Mark No-Show</button>`;
+}
 
-  function renderTopics(items){
-    const counts = {};
-    items.forEach(it=>{
-      const t = it.topic || 'Unspecified';
-      counts[t] = (counts[t]||0)+1;
-    });
-    const labels = Object.keys(counts);
-    const data = labels.map(l=>counts[l]);
-    const colors = labels.map(l=> TOPIC_COLORS[l] || '#9aa4b2');
+let lineChart, donutChart;
+function renderCharts(){
+  const ctxL = document.getElementById('line').getContext('2d');
+  const byDay = {};
+  ITEMS.forEach(x=>{
+    const d = new Date(x.start_time);
+    const key = d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+    byDay[key] = (byDay[key]||0) + 1;
+  });
+  const labels = Object.keys(byDay).sort();
+  const data = labels.map(k=>byDay[k]);
 
-    if (topicChart) topicChart.destroy();
-    topicChart = new Chart(document.getElementById('topicChart'),{
-      type:'doughnut',
-      data:{ labels, datasets:[{ data, backgroundColor: colors }]},
-      options:{ plugins:{ legend:{ position:'top', labels:{ boxWidth:14 } } } }
-    });
-  }
+  if (lineChart) lineChart.destroy();
+  lineChart = new Chart(ctxL,{type:'line',data:{labels,datasets:[{label:'Completed',data,pointRadius:2}]},options:{responsive:true,maintainAspectRatio:false}});
 
-  function renderLine(items){
-    // group by day: completed only
-    const map = new Map();
-    items.forEach(it=>{
-      if (Number(it.zoom_minutes)>0){
-        const d = new Date(it.start_time);
-        const key = new Date(d.getFullYear(),d.getMonth(),d.getDate()).toISOString().slice(0,10);
-        map.set(key,(map.get(key)||0)+1);
-      }
-    });
-    const labels = Array.from(map.keys()).sort();
-    const data = labels.map(k=>map.get(k));
+  const byTopic = {};
+  ITEMS.forEach(x=>{
+    const t = x.topic && x.topic.trim() ? x.topic.trim() : 'Unspecified';
+    byTopic[t] = (byTopic[t]||0)+1;
+  });
+  const tLabels = Object.keys(byTopic);
+  const tData   = tLabels.map(k=>byTopic[k]);
+  if (donutChart) donutChart.destroy();
+  donutChart = new Chart(document.getElementById('donut').getContext('2d'),{
+    type:'doughnut',
+    data:{labels:tLabels,datasets:[{data:tData}]},
+    options:{responsive:true,maintainAspectRatio:false,cutout:'65%'}
+  });
+}
 
-    if (lineChart) lineChart.destroy();
-    lineChart = new Chart(document.getElementById('lineChart'),{
-      type:'line',
-      data:{ labels, datasets:[{ data, tension:.3, fill:false, pointRadius:2, borderWidth:2 }]},
-      options:{ scales:{ y:{ beginAtZero:true } }, plugins:{ legend:{display:false}} }
-    });
-  }
+async function load(){
+  // 1) Fetch rows
+  const f = await jjsonp(`${GAS_URL}?action=fetch&rangeDays=${RANGE_DAYS}`);
+  if (f.error){ console.error(f.error); return; }
+  ITEMS = f.items || [];
+  zoomTotal = ITEMS.length;
+  renderKPIs(); renderTable(); renderCharts();
 
-  // ============= ACTIONS =============
-  async function markNoShowClick(btn, uuid){
+  // 2) Collect Zoom URLs to enrich
+  const urls = ITEMS.map(x=>x.zoom_url).filter(z=>z && /zoom\.us\/j\/\d+/.test(z));
+  if (!urls.length){ renderKPIs(); return; }
+
+  // chunk lookups to keep URL length modest
+  const CHUNK = 25;
+  let merged = {};
+  for (let i=0;i<urls.length;i+=CHUNK){
+    const part = urls.slice(i,i+CHUNK).map(encodeURIComponent).join(',');
     try{
-      btn.disabled=true; const before=btn.textContent; btn.textContent='Marking…';
-      btn.classList.add('opacity-70','cursor-wait');
-
-      const url = `${GAS_URL}?action=markNoShow&uuid=${encodeURIComponent(uuid)}`;
-      const res = await jsonp(url);
-      if(!res || !res.ok) throw new Error(res && res.error ? res.error : 'Failed');
-
-      // update local row + UI
-      const it = APP_ITEMS.find(x=> String(x.event_uuid)===String(uuid));
-      if (it){ it.no_show='yes'; it.status='no-show'; it.zoom_minutes=it.zoom_minutes||0; }
-      const row = btn.closest('tr');
-      if (row){
-        const cell = row.querySelector('[data-col="status"]');
-        if (cell) cell.innerHTML = `<span class="pill pill-orange">No-Show</span>`;
-      }
-      btn.textContent='Marked'; btn.classList.remove('cursor-wait'); btn.disabled=true;
-
-      recomputeAndRenderTop(APP_ITEMS);
-      toast('Marked as No-Show');
-    }catch(err){
-      console.error(err);
-      btn.textContent=btn.dataset.originalText||'Mark No-Show';
-      btn.disabled=false; btn.classList.remove('cursor-wait');
-      toast('Could not mark No-Show',true);
-    }
+      const res = await jjsonp(`${GAS_URL}?action=zoomBatch&urls=${part}`);
+      if (res && res.map){ Object.assign(merged, res.map); zoomHits += (res.hits||0); renderKPIs(); }
+    }catch(e){ console.warn('zoomBatch failed', e); }
   }
 
-  // ============= LOAD =============
-  async function load(){
-    document.getElementById('rangeLabel').textContent = `Last ${RANGE_DAYS} days`;
-    try{
-      const data = await jsonp(`${GAS_URL}?action=fetch&rangeDays=${RANGE_DAYS}`);
-      if (!data || !Array.isArray(data.items)) throw new Error('Bad payload');
+  // 3) Apply minutes to UI + persist back
+  const writeMap = {};
+  ITEMS.forEach(x=>{
+    const m = merged[x.zoom_url];
+    if (typeof m === 'number' && m > 0){
+      x.zoom_minutes = m;
+      x.status = (String(x.status).toLowerCase()==='no-show')? 'No-Show' : 'Completed';
+      writeMap[x.event_uuid] = m;
 
-      APP_ITEMS = data.items.map((r)=>({
-        event_uuid: r.event_uuid,
-        start_time: r.start_time,
-        end_time:   r.end_time,
-        attendee_name: r.attendee_name,
-        attendee_email: r.attendee_email,
-        topic: r.question_2_topic || r.topic || 'Unspecified',
-        status: (r.status || '').toString().toLowerCase(),
-        no_show: (r.no_show || ''),
-        zoom_minutes: Number(r.zoom_minutes||0),
-        zoom_url: r.zoom_url || ''
-      }));
-
-      // Normalize status based on zoom + flags
-      const now = Date.now();
-      APP_ITEMS.forEach(it=>{
-        const isNoShow = (it.no_show||'').toString().toLowerCase()==='yes' || it.status==='no-show';
-        if (isNoShow){ it.status='no-show'; return; }
-        if (it.zoom_minutes>0){ it.status='completed'; return; }
-        if (it.status==='canceled' || it.status==='cancelled'){ it.status='canceled'; return; }
-        const s = toDate(it.start_time);
-        if (s && s.getTime()>now){ it.status='scheduled'; }
-        else { it.status = 'scheduled'; }
-      });
-
-      recomputeAndRenderTop(APP_ITEMS);
-      renderTopics(APP_ITEMS);
-      renderLine(APP_ITEMS);
-      renderTable(APP_ITEMS);
-    }catch(err){
-      console.error(err);
-      toast('Failed to load data. Check your GAS URL.', true);
-      document.getElementById('loadedBadge').textContent = 'Loaded (0)';
+      // update table cell
+      const cell = document.querySelector(`td.zoommins[data-uuid="${x.event_uuid}"]`);
+      if (cell) cell.textContent = fmtMins(m);
+      // update status cell visually
+      // re-render table is heavier; leave as-is for speed
     }
+  });
+  renderKPIs();
+
+  // Persist minutes back to sheet (non-blocking)
+  if (Object.keys(writeMap).length){
+    jjsonp(`${GAS_URL}?action=writeZoomMinutes&map=${encodeURIComponent(JSON.stringify(writeMap))}`)
+      .catch(()=>{ /* silent */ });
   }
-  load();
+}
+
+document.addEventListener('click', async (e)=>{
+  const btn = e.target.closest('button[data-action="noshow"]');
+  if (!btn) return;
+  const uuid = btn.getAttribute('data-uuid');
+  btn.disabled = true; btn.textContent = 'Marking…';
+  try{
+    const r = await jjsonp(`${GAS_URL}?action=markNoShow&uuid=${encodeURIComponent(uuid)}`);
+    if (r && r.ok){
+      // update local model + UI
+      const row = ITEMS.find(x=>x.event_uuid===uuid);
+      if (row){ row.status = 'No-Show'; }
+      const td = btn.parentElement.previousElementSibling.previousElementSibling; // crude but fine here
+      btn.outerHTML = '<span class="muted">—</span>';
+      renderKPIs();
+      renderTable(); // keep it simple
+    } else {
+      btn.disabled=false; btn.textContent='Mark No-Show';
+      alert('Could not mark no-show.');
+    }
+  }catch(err){
+    btn.disabled=false; btn.textContent='Mark No-Show';
+    alert('Error marking no-show.');
+  }
+});
+
+load();
 </script>
 </body>
 </html>
