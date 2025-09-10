@@ -1,338 +1,265 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
 <head>
-  <meta charset="utf-8" />
-  <title>Shepherd • Meeting Analytics</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
-  <!-- Chart.js -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width,initial-scale=1"/>
+  <title>Shepherd Meeting Analytics</title>
+  <link rel="preconnect" href="https://cdn.jsdelivr.net"/>
   <style>
-    :root{
-      --bg1:#667eea; --bg2:#764ba2;
-      --card:#ffffffef; --muted:#718096; --ink:#2d3748;
-    }
-    *{box-sizing:border-box;margin:0;padding:0}
-    body{
-      font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;
-      background:linear-gradient(135deg,var(--bg1),var(--bg2));
-      min-height:100vh; padding:20px; color:var(--ink);
-    }
-    .dashboard{max-width:1400px;margin:0 auto;animation:fadeIn .4s ease-out}
-    @keyframes fadeIn{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
-    .header{background:var(--card);backdrop-filter:blur(10px);border-radius:20px;padding:24px;margin-bottom:20px;box-shadow:0 10px 30px rgba(0,0,0,.1)}
-    .header h1{font-size:28px}
-    .date-range{display:inline-flex;gap:8px;background:#f7fafc;padding:8px 14px;border-radius:10px;color:#4a5568;font-size:14px;margin-top:10px}
-    .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:16px;margin:18px 0}
-    .stat-card{background:var(--card);border-radius:16px;padding:18px;box-shadow:0 8px 26px rgba(0,0,0,.08)}
-    .stat-label{color:#718096;font-size:12px;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px}
-    .stat-value{font-size:30px;font-weight:700;background:linear-gradient(135deg,var(--bg1),var(--bg2));-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent}
-    .charts-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(480px,1fr));gap:16px;margin:16px 0}
-    .chart-card{background:var(--card);border-radius:16px;padding:20px;box-shadow:0 8px 26px rgba(0,0,0,.08)}
-    .chart-title{display:flex;justify-content:space-between;align-items:center;font-weight:600;margin-bottom:12px}
-    .table-card{background:var(--card);border-radius:16px;padding:20px;box-shadow:0 8px 26px rgba(0,0,0,.08);margin-top:16px}
+    body{font-family:Inter,system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;margin:0;background:linear-gradient(160deg,#635bff 0%,#6f6cd6 100%) fixed;color:#1f2937}
+    .wrap{max-width:1180px;margin:24px auto;padding:0 16px}
+    .card{background:#f8fafc;border-radius:18px;box-shadow:0 10px 30px rgba(0,0,0,.08);padding:18px}
+    .h1{font-size:28px;font-weight:800;display:flex;align-items:center;gap:12px}
+    .grid{display:grid;gap:16px}
+    .kpis{grid-template-columns:repeat(4,1fr)}
+    .kpi h4{font-size:12px;letter-spacing:.08em;text-transform:uppercase;color:#6b7280;margin:0 0 6px}
+    .kpi .v{font-size:34px;font-weight:800}
+    .panel{grid-template-columns:1fr 1fr}
     table{width:100%;border-collapse:collapse}
-    th{background:#f7fafc;text-align:left;padding:12px;border-bottom:2px solid #e2e8f0;font-size:12px;letter-spacing:.4px;text-transform:uppercase;color:#4a5568}
-    td{padding:12px;border-bottom:1px solid #edf2f7;font-size:14px}
-    .badge{display:inline-block;padding:3px 10px;border-radius:12px;font-size:12px;font-weight:600}
-    .completed{background:#c6f6d5;color:#22543d}
-    .scheduled{background:#ebf8ff;color:#2a4365}
-    .cancelled{background:#fed7d7;color:#742a2a}
-    .nosh{background:#ffeaa7;color:#7d6608}
-    .btn{border:0;border-radius:10px;padding:6px 10px;font-size:12px;font-weight:600;cursor:pointer}
-    .btn-ghost{background:#edf2f7;color:#2d3748}
-    .btn-ghost:hover{filter:brightness(.98)}
-    .spinner{display:inline-block;width:18px;height:18px;border:3px solid rgba(102,126,234,.25);border-top-color:#667eea;border-radius:50%;animation:spin 1s linear infinite}
-    @keyframes spin{to{transform:rotate(360deg)}}
-    @media (max-width:768px){.charts-grid{grid-template-columns:1fr}}
-    .muted{color:#718096}
+    th,td{padding:14px;border-top:1px solid #e5e7eb;font-size:14px}
+    th{text-transform:uppercase;font-size:12px;letter-spacing:.06em;color:#6b7280;background:#f3f4f6}
+    .badge{display:inline-block;padding:5px 10px;border-radius:999px;font-size:12px;font-weight:700}
+    .ok{background:#dcfce7;color:#065f46}
+    .warn{background:#fee2e2;color:#7f1d1d}
+    .muted{color:#94a3b8}
+    .btn{padding:6px 10px;border-radius:8px;border:1px solid #d1d5db;background:#fff;cursor:pointer}
+    .btn:hover{background:#f9fafb}
+    .tiny{font-size:12px;color:#6b7280}
+    .okline{color:#10b981}
+    .err{color:#b91c1c}
+    canvas{max-width:100%;height:340px}
+    .legend{display:flex;flex-wrap:wrap;gap:10px;margin-top:8px}
+    .chip{display:inline-flex;align-items:center;gap:6px;font-size:13px}
+    .dot{width:10px;height:10px;border-radius:2px;background:#999}
   </style>
 </head>
 <body>
-<div class="dashboard">
-  <div class="header">
-    <h1>📊 Shepherd Meeting Analytics</h1>
-    <div class="date-range">📅 Last <span id="rangeLabel">365</span> days • <span id="loadNote" class="muted">Chart canvas ready — loading data…</span></div>
-  </div>
-
-  <div class="stats-grid">
-    <div class="stat-card"><div class="stat-label">Total Meetings</div><div id="kpiTotal" class="stat-value">—</div><div class="muted" id="kpiZoom">Zoom lookups: <span id="zoomProgress">0/0</span></div></div>
-    <div class="stat-card"><div class="stat-label">Meeting Hours (Actual)</div><div id="kpiHours" class="stat-value">—</div><div class="muted">Uses Zoom when available</div></div>
-    <div class="stat-card"><div class="stat-label">Avg Duration (min)</div><div id="kpiAvg" class="stat-value">—</div></div>
-    <div class="stat-card"><div class="stat-label">No-Show Rate</div><div id="kpiNoShow" class="stat-value">—</div></div>
-  </div>
-
-  <div class="charts-grid">
-    <div class="chart-card">
-      <div class="chart-title">Meetings Over Time <span id="spinTime" class="spinner" style="display:none;"></span></div>
-      <div style="position:relative;height:280px"><canvas id="meetingsChart"></canvas></div>
+  <div class="wrap">
+    <div class="card" style="margin-bottom:16px">
+      <div class="h1">📊 Shepherd Meeting Analytics</div>
+      <div class="tiny" id="daterange">Last 30 days • <span id="loadStatus">Loading…</span></div>
     </div>
-    <div class="chart-card">
-      <div class="chart-title">Meeting Topics Breakdown <span id="spinTopic" class="spinner" style="display:none;"></span></div>
-      <div style="position:relative;height:280px"><canvas id="topicChart"></canvas></div>
+
+    <div class="grid kpis">
+      <div class="card kpi"><h4>Total Meetings</h4><div class="v" id="k_total">-</div><div class="tiny">Zoom lookups: <span id="zoomCounter">0/0</span></div></div>
+      <div class="card kpi"><h4>Meeting Hours (Actual)</h4><div class="v" id="k_hours">0.0</div><div class="tiny">Uses Zoom when available</div></div>
+      <div class="card kpi"><h4>Avg Duration (min)</h4><div class="v" id="k_avg">-</div></div>
+      <div class="card kpi"><h4>No-Show Rate</h4><div class="v" id="k_ns">0%</div></div>
+    </div>
+
+    <div class="grid panel" style="margin-top:16px">
+      <div class="card">
+        <h3>Meetings Over Time</h3>
+        <canvas id="line"></canvas>
+      </div>
+      <div class="card">
+        <h3>Meeting Topics Breakdown</h3>
+        <canvas id="topics"></canvas>
+        <div class="legend" id="legend"></div>
+      </div>
+    </div>
+
+    <div class="card" style="margin-top:16px">
+      <h3 style="margin:0 0 8px">Recent Meetings</h3>
+      <div class="tiny">Zoom lookups: <span id="zoomCounter2">0/0</span></div>
+      <table id="tbl">
+        <thead>
+          <tr>
+            <th>Date</th><th>Time</th><th>Attendee</th><th>Email</th>
+            <th>Topic</th><th>Status</th><th>Sched (min)</th><th>Zoom (min)</th><th>Actions</th>
+          </tr>
+        </thead>
+        <tbody></tbody>
+      </table>
     </div>
   </div>
 
-  <div class="table-card">
-    <div class="chart-title">Recent Meetings <span id="spinTable" class="spinner" style="display:none;"></span></div>
-    <table id="tbl">
-      <thead>
-      <tr>
-        <th>Date</th><th>Time</th><th>Attendee</th><th>Email</th><th>Topic</th><th>Status</th><th>Sched (min)</th><th>Zoom (min)</th><th>Actions</th>
-      </tr>
-      </thead>
-      <tbody id="tbody"></tbody>
-    </table>
-  </div>
-</div>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <script>
+    // ===== EDIT ME: Your Apps Script Web App URL (ends with /exec)
+    const GAS_URL = 'https://script.google.com/macros/s/AKfycbxcHqiEI0F90DCEYkp4IydvKGA8kKsAO_9rBrmTI2sOYoIlNR4ig9d1UGL23Hcfn5UN0Q/exec';
 
-<script>
-/** ====== SET THESE ====== **/
-const GAS_URL  = 'https://script.google.com/macros/s/AKfycbzMd-BTIy7JlQJ4IlZtssSs9TPL0sSc0MiIQTkVn2eZQcw26AHKV6ruCAuS0t99dHqEqA/exec'; // e.g. https://script.google.com/macros/s/AKfycb.../exec
-const ZOOM_URL = GAS_URL; // same URL, because action=zoom* is routed by doGet
+    // ===== Topic palette (stable colors)
+    const TOPIC_COLORS = {
+      'Invoices':'#3b82f6','Forms':'#f43f5e','Other':'#f59e0b','Reporting':'#facc15',
+      'Inventory':'#2dd4bf','Messaging/Client Communications':'#8b5cf6','SOAP':'#cbd5e1',
+      'Products':'#2563eb','Reminders':'#fb7185','Scheduling':'#f97316','Clients/Patients':'#fde047',
+      'Unspecified':'#6366f1'
+    };
 
-
-/** ====== tiny JSONP helper (no CORS issues) ====== **/
-function jsonp(url){
-  return new Promise((resolve,reject)=>{
-    const cb = 'cb_' + Math.random().toString(36).slice(2);
-    const s = document.createElement('script');
-    const t = setTimeout(()=>{cleanup();reject(new Error('JSONP timeout'));}, 15000);
-    function cleanup(){clearTimeout(t); s.remove(); delete window[cb];}
-    window[cb]=(data)=>{cleanup(); resolve(data);};
-    s.src = url + (url.includes('?')?'&':'?') + 'callback=' + cb;
-    s.onerror=()=>{cleanup(); reject(new Error('JSONP failed'));};
-    document.body.appendChild(s);
-  });
-}
-
-/** ====== utils ====== **/
-const toISO = d => new Date(d).toISOString();
-const fmtDate = iso => new Date(iso).toLocaleDateString([], {month:'short', day:'numeric'});
-const fmtTime = iso => new Date(iso).toLocaleTimeString([], {hour:'2-digit', minute:'2-digit'});
-const mins = (a,b)=> Math.max(0, Math.round((new Date(b)-new Date(a))/60000));
-
-/** ====== stable color per topic ====== **/
-const palette = [
-  '#667eea','#764ba2','#f093fb','#96ceb4','#ffeaa7','#f6ad55','#63b3ed',
-  '#fc8181','#68d391','#f6e05e','#b794f4','#f687b3','#81e6d9','#9ae6b4'
-];
-const topicColor = (topic)=>{
-  if(!topic) return '#cbd5e0';
-  let h=0; for(let i=0;i<topic.length;i++) h=(h*31 + topic.charCodeAt(i))>>>0;
-  return palette[h % palette.length];
-};
-
-/** ====== global state ====== **/
-let ITEMS = [];
-let TOPIC_LIST = [];
-let CHART_TIME, CHART_TOPIC;
-let ZOOM_DONE=0, ZOOM_TOTAL=0;
-
-/** ====== charts ====== **/
-function buildCharts(){
-  const ctx1=document.getElementById('meetingsChart');
-  const ctx2=document.getElementById('topicChart');
-
-  const byDay = {};
-  ITEMS.forEach(it=>{
-    const key = new Date(it.start_time).toISOString().slice(0,10);
-    byDay[key]=(byDay[key]||0)+1;
-  });
-  const labels = Object.keys(byDay).sort();
-  const series = labels.map(k=>byDay[k]);
-
-  const topicCounts = {};
-  ITEMS.forEach(it=>{
-    const t = it.question_2_topic || 'Unspecified';
-    topicCounts[t]=(topicCounts[t]||0)+1;
-  });
-  TOPIC_LIST = Object.keys(topicCounts).sort();
-  const tData = TOPIC_LIST.map(t=>topicCounts[t]);
-  const tColors = TOPIC_LIST.map(topicColor);
-
-  if(CHART_TIME) CHART_TIME.destroy();
-  CHART_TIME = new Chart(ctx1, {
-    type:'line',
-    data:{ labels, datasets:[{label:'Meetings', data:series, fill:true, tension:.35, borderColor:'#667eea', backgroundColor:'rgba(102,126,234,.12)'}]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}},scales:{x:{grid:{display:false}},y:{beginAtZero:true}}}
-  });
-
-  if(CHART_TOPIC) CHART_TOPIC.destroy();
-  CHART_TOPIC = new Chart(ctx2, {
-    type:'doughnut',
-    data:{ labels:TOPIC_LIST, datasets:[{ data:tData, backgroundColor:tColors, borderWidth:0 }]},
-    options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{position:'right'}}}
-  });
-}
-
-/** ====== table + KPIs ====== **/
-function renderTable(){
-  const tb=document.getElementById('tbody');
-  tb.innerHTML='';
-  // newest first
-  const rows = [...ITEMS].sort((a,b)=> new Date(b.start_time)-new Date(a.start_time)).slice(0,200);
-  rows.forEach(it=>{
-    const tr=document.createElement('tr');
-
-    const scheduledMin = mins(it.start_time, it.end_time);
-    const zoomMin = (typeof it.zoom_duration_min === 'number') ? it.zoom_duration_min : '';
-
-    const status = deriveStatus(it);
-    const badgeClass = status==='Completed' ? 'completed' :
-                       status==='Canceled'  ? 'cancelled' :
-                       status==='No-Show'   ? 'nosh' : 'scheduled';
-
-    tr.innerHTML =
-      `<td>${fmtDate(it.start_time)}</td>
-       <td>${fmtTime(it.start_time)}</td>
-       <td>${escapeHtml(it.attendee_name||'')}</td>
-       <td>${escapeHtml(it.attendee_email||'')}</td>
-       <td><span style="display:inline-block;width:10px;height:10px;border-radius:50%;background:${topicColor(it.question_2_topic)};margin-right:6px"></span>${escapeHtml(it.question_2_topic||'')}</td>
-       <td><span class="badge ${badgeClass}">${status}</span></td>
-       <td class="muted" style="text-align:right">${scheduledMin||''}</td>
-       <td style="text-align:right">${zoomMin!=='' ? zoomMin : '<span class="muted">—</span>'}</td>
-       <td>
-         <button class="btn btn-ghost" onclick="markNoShow('${encodeURIComponent(it.event_uuid)}')">Mark No-Show</button>
-       </td>`;
-    tb.appendChild(tr);
-  });
-
-  // KPIs
-  document.getElementById('kpiTotal').textContent = ITEMS.length.toString();
-
-  const completed = ITEMS.filter(it=> deriveStatus(it)==='Completed');
-  const totalMins = completed.reduce((s,it)=>{
-    const z = (typeof it.zoom_duration_min==='number') ? it.zoom_duration_min : mins(it.start_time, it.end_time);
-    return s + z;
-  },0);
-  document.getElementById('kpiHours').textContent = (totalMins/60).toFixed(1);
-
-  const avg = completed.length ? (totalMins / completed.length) : 0;
-  document.getElementById('kpiAvg').textContent = Math.round(avg).toString();
-
-  const nos = ITEMS.filter(it=> deriveStatus(it)==='No-Show').length;
-  const rate = ITEMS.length ? Math.round(100*nos/ITEMS.length) : 0;
-  document.getElementById('kpiNoShow').textContent = rate + '%';
-}
-
-function deriveStatus(it){
-  // manual no-show wins
-  const manual = (it.no_show||'').toString().toLowerCase().includes('marked as no show');
-  const zoomFlag = (it.zoom_no_show === true);
-  const canceled = !!(it.canceled_at) || (it.status==='canceled') || (it.status===true); // tolerate legacy
-  const inPast = new Date(it.start_time) < new Date();
-
-  if (manual || zoomFlag) return 'No-Show';
-  if (canceled) return 'Canceled';
-  if (inPast)  return 'Completed';
-  return 'Scheduled';
-}
-
-function escapeHtml(s){
-  return String(s||'').replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]));
-}
-
-/** ====== mark no-show (JSONP) ====== **/
-async function markNoShow(eventUuidEncoded){
-  if(!GAS_URL){alert('GAS_URL missing'); return;}
-  const eventUuid = decodeURIComponent(eventUuidEncoded);
-  try{
-    const res = await jsonp(`${GAS_URL}?action=markNoShow&id=${encodeURIComponent(eventUuid)}`);
-    if(!res || res.error){ alert(res && res.error ? res.error : 'Failed to mark no-show'); return; }
-    // update local item, re-render fast
-    const it = ITEMS.find(x=> x.event_uuid===eventUuid);
-    if (it){ it.no_show = 'Marked as No Show'; }
-    renderTable();
-    buildCharts();
-  }catch(e){
-    alert('No-show update failed: '+ e.message);
-  }
-}
-
-/** ====== Zoom enrichment (non-blocking) ====== **/
-async function enrichWithZoom(items){
-  if(!ZOOM_URL) return items;
-  // Collect meeting IDs/URLs
-  const ids = items.map(it => it.zoom_url || '').filter(Boolean);
-  if(ids.length===0) return items;
-
-  // Zoom batch in chunks to keep URL length sane
-  const chunkSize = 25;
-  ZOOM_TOTAL = ids.length; ZOOM_DONE = 0;
-  updateZoomProgress();
-
-  for (let i=0; i<ids.length; i+=chunkSize){
-    const slice = ids.slice(i, i+chunkSize).map(encodeURIComponent).join(',');
-    try{
-      const out = await jsonp(`${ZOOM_URL}?action=zoomBatch&ids=${slice}`);
-      if(out && out.items){
-        // map by meeting_id or input
-        out.items.forEach(z=>{
-          // Match strategy: if the sheet stored full zoom_url text, prefer input matching;
-          // otherwise try numeric meeting_id (string) containment in zoom_url.
-          const target = items.find(it=>{
-            if (z.input && it.zoom_url && it.zoom_url.includes(z.input)) return true;
-            if (z.meeting_id && it.zoom_url && it.zoom_url.includes(z.meeting_id)) return true;
-            return false;
-          });
-          if (target && z.ok){
-            target.zoom_duration_min = z.zoom_duration_min;
-            target.zoom_participants = z.zoom_participants;
-            target.zoom_no_show      = z.zoom_no_show === true;
-          }
-        });
-      }
-    } catch(e){
-      // ignore chunk failure; continue
-    } finally {
-      ZOOM_DONE += Math.min(chunkSize, ids.length - i);
-      updateZoomProgress();
-      renderTable(); // incremental refresh feels fast
+    // ===== JSONP helper
+    function jsonp(url){
+      return new Promise((resolve,reject)=>{
+        const cb='gas_cb_'+Math.random().toString(36).slice(2);
+        const s=document.createElement('script');
+        const sep=url.includes('?')?'&':'?';
+        s.src=url+sep+'jsonp='+cb;
+        s.onerror=()=>{reject(new Error('JSONP failed')); s.remove(); delete window[cb];};
+        window[cb]=(data)=>{resolve(data); s.remove(); delete window[cb];};
+        document.head.appendChild(s);
+      });
     }
-  }
-  return items;
-}
-function updateZoomProgress(){
-  document.getElementById('zoomProgress').textContent = `${ZOOM_DONE}/${ZOOM_TOTAL}`;
-}
 
-/** ====== load flow ====== **/
-(async function load(){
-  document.getElementById('spinTime').style.display='inline-block';
-  document.getElementById('spinTopic').style.display='inline-block';
-  document.getElementById('spinTable').style.display='inline-block';
+    // ===== State
+    let ALL=[], ZDONE=0, ZTOTAL=0, lineChart, topicChart;
 
-  const days = 365;
-  document.getElementById('rangeLabel').textContent = String(days);
+    function fmtDate(iso){ const d=new Date(iso); return d.toLocaleDateString(undefined,{month:'short',day:'numeric',year:'numeric'}); }
+    function fmtTime(iso){ const d=new Date(iso); return d.toLocaleTimeString(undefined,{hour:'numeric',minute:'2-digit'}); }
 
-  try{
-    if(!GAS_URL){ throw new Error('Add your Google Apps Script Web App URL (GAS_URL).'); }
-    // 1) fetch data fast
-    const res = await jsonp(`${GAS_URL}?action=fetch&days=${days}`);
-    if(res && res.items){ ITEMS = res.items; } else { ITEMS = []; }
+    function computeKpis(rows){
+      const done=rows.filter(r=>r.status==='completed' && !r.no_show);
+      const total=rows.length;
+      const schedMin=done.reduce((s,r)=>s+((new Date(r.end_time)-new Date(r.start_time))/60000),0);
+      const actualMin=done.reduce((s,r)=>s+(r.zoom_minutes || ((new Date(r.end_time)-new Date(r.start_time))/60000)),0);
+      const avg=done.length? Math.round((actualMin/done.length)*10)/10 : 0;
+      const ns = rows.filter(r=>r.no_show==='true' || r.status==='no-show').length;
+      document.getElementById('k_total').textContent=String(total);
+      document.getElementById('k_hours').textContent=(actualMin/60).toFixed(1);
+      document.getElementById('k_avg').textContent=String(avg);
+      document.getElementById('k_ns').textContent=Math.round((ns/Math.max(total,1))*100)+'%';
+    }
 
-    // Initial paint (fast)
-    renderTable();
-    buildCharts();
+    function renderLine(rows){
+      const byDay={};
+      rows.forEach(r=>{
+        const k=new Date(r.start_time).toISOString().slice(0,10);
+        byDay[k]=(byDay[k]||0)+1;
+      });
+      const labels=Object.keys(byDay).sort();
+      const data=labels.map(k=>byDay[k]);
+      if (lineChart) lineChart.destroy();
+      lineChart=new Chart(document.getElementById('line'),{
+        type:'line',
+        data:{labels,datasets:[{label:'Completed',data,borderWidth:2,pointRadius:2}]},
+        options:{responsive:true,maintainAspectRatio:false,scales:{y:{beginAtZero:true}}}
+      });
+    }
 
-    // 2) non-blocking zoom enrichment
-    await enrichWithZoom(ITEMS);
+    function renderTopics(rows){
+      const counts={};
+      rows.forEach(r=>{
+        const t=r.question_2_topic || 'Unspecified';
+        counts[t]=(counts[t]||0)+1;
+      });
+      const labels=Object.keys(counts);
+      const data=labels.map(l=>counts[l]);
+      const colors=labels.map(l=>TOPIC_COLORS[l]||'#94a3b8');
+      if (topicChart) topicChart.destroy();
+      topicChart=new Chart(document.getElementById('topics'),{
+        type:'doughnut',
+        data:{labels,datasets:[{data,backgroundColor:colors}]},
+        options:{responsive:true,maintainAspectRatio:false,plugins:{legend:{display:false}}}
+      });
+      // legend
+      const lg=document.getElementById('legend'); lg.innerHTML='';
+      labels.forEach((l,i)=>{
+        const el=document.createElement('div'); el.className='chip';
+        el.innerHTML=`<span class="dot" style="background:${colors[i]}"></span>${l}`;
+        lg.appendChild(el);
+      });
+    }
 
-    // Final paint (with zoom data)
-    renderTable();
-    buildCharts();
+    function badge(status,noShow){
+      if (noShow==='true'||status==='no-show') return `<span class="badge warn">No-Show</span>`;
+      if (status==='canceled') return `<span class="badge warn">Canceled</span>`;
+      if (status==='completed') return `<span class="badge ok">Completed</span>`;
+      return `<span class="badge" style="background:#e0e7ff;color:#1e40af">Scheduled</span>`;
+    }
 
-    document.getElementById('loadNote').textContent = 'Loaded';
-  }catch(e){
-    document.getElementById('loadNote').textContent = 'Error loading data';
-    console.error(e);
-    alert(e.message || e);
-  }finally{
-    document.getElementById('spinTime').style.display='none';
-    document.getElementById('spinTopic').style.display='none';
-    document.getElementById('spinTable').style.display='none';
-  }
-})();
-</script>
+    function rowHtml(r){
+      const schedMin=Math.round((new Date(r.end_time)-new Date(r.start_time))/60000);
+      const z = (r.zoom_minutes!=null)? r.zoom_minutes : '—';
+      return `<tr data-id="${r.event_uuid}">
+        <td>${fmtDate(r.start_time)}</td>
+        <td>${fmtTime(r.start_time)}</td>
+        <td>${r.attendee_name||'—'}</td>
+        <td class="muted">${r.attendee_email||'—'}</td>
+        <td>${r.question_2_topic||'Unspecified'}</td>
+        <td>${badge(r.status,r.no_show)}</td>
+        <td>${schedMin}</td>
+        <td class="zcol">${z}</td>
+        <td><button class="btn" onclick="markNoShow('${r.event_uuid}')">Mark No-Show</button></td>
+      </tr>`;
+    }
+
+    function renderTable(rows){
+      const tb=document.querySelector('#tbl tbody');
+      tb.innerHTML = rows.map(rowHtml).join('');
+    }
+
+    async function markNoShow(id){
+      try{
+        await jsonp(`${GAS_URL}?action=markNoShow&event_uuid=${encodeURIComponent(id)}`);
+        // reflect immediately
+        const r = ALL.find(x=>x.event_uuid===id);
+        if (r){ r.no_show='true'; r.status='no-show'; }
+        renderTable(ALL);
+        computeKpis(ALL);
+      }catch(e){ alert('Mark no-show failed'); }
+    }
+
+    // ===== Zoom enrichment
+    function needsZoom(r){
+      if (!r.zoom_url) return false;
+      const inPast = new Date(r.start_time) < new Date();
+      const already = r.zoom_minutes != null && r.zoom_minutes !== '';
+      return inPast && !already;
+    }
+
+    async function runZoomEnrichment(rows){
+      // prepare pairs
+      const pairs = rows.filter(needsZoom).map(r=>({event_uuid:r.event_uuid,zoom_url:r.zoom_url}));
+      ZTOTAL = pairs.length; ZDONE = 0;
+      updateZoomCounters();
+      const batchSize = 20;
+      for (let i=0;i<pairs.length;i+=batchSize){
+        const slice=pairs.slice(i,i+batchSize);
+        try{
+          const payload = encodeURIComponent(JSON.stringify(slice));
+          const res = await jsonp(`${GAS_URL}?action=zoomBatch&payload=${payload}`);
+          if (res && Array.isArray(res.items)){
+            res.items.forEach(it=>{
+              const row = ALL.find(x=>x.event_uuid===it.event_uuid);
+              if (row){
+                row.zoom_minutes = it.zoom_minutes != null ? it.zoom_minutes : row.zoom_minutes;
+                // auto no-show when Zoom says 0 min & meeting start already passed
+                if ((it.no_show === true) || (it.zoom_minutes === 0 && new Date(row.start_time) < new Date())){
+                  row.no_show = 'true';
+                  row.status = (row.status==='scheduled') ? 'no-show' : row.status;
+                }
+              }
+              ZDONE++;
+            });
+            updateZoomCounters();
+            renderTable(ALL);
+            computeKpis(ALL);
+          }
+        }catch(err){
+          // keep going
+        }
+      }
+    }
+
+    function updateZoomCounters(){
+      const text=`${ZDONE}/${ZTOTAL}`;
+      document.getElementById('zoomCounter').textContent=text;
+      document.getElementById('zoomCounter2').textContent=text;
+    }
+
+    // ===== Load
+    (async function load(){
+      document.getElementById('loadStatus').textContent='Loading…';
+      const rangeDays=365, nextDays=30;
+      document.getElementById('daterange').firstChild && (document.getElementById('daterange').innerHTML=`Last ${rangeDays} days • <span id="loadStatus">Loading…</span>`);
+      const res = await jsonp(`${GAS_URL}?action=fetch&rangeDays=${rangeDays}&nextDays=${nextDays}`);
+      ALL = res.items || [];
+      computeKpis(ALL);
+      renderLine(ALL);
+      renderTopics(ALL);
+      renderTable(ALL);
+      document.getElementById('loadStatus').textContent='Loaded';
+      runZoomEnrichment(ALL);   // do this after first paint (faster perceived load)
+    })();
+  </script>
 </body>
 </html>
