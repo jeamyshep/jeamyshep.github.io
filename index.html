@@ -249,7 +249,7 @@
     // ===== Load
     (async function load(){
       document.getElementById('loadStatus').textContent='Loading…';
-      const rangeDays=365, nextDays=30;
+      const rangeDays=30, nextDays=30;
       document.getElementById('daterange').firstChild && (document.getElementById('daterange').innerHTML=`Last ${rangeDays} days • <span id="loadStatus">Loading…</span>`);
       const res = await jsonp(`${GAS_URL}?action=fetch&rangeDays=${rangeDays}&nextDays=${nextDays}`);
       ALL = res.items || [];
