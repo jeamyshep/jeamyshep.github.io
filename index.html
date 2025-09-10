@@ -147,7 +147,7 @@
         const cb = 'cb_' + Math.random().toString(36).slice(2);
         window[cb] = (payload)=>{ delete window[cb]; s.remove(); resolve(payload); };
         const s = document.createElement('script');
-        s.src = url + (url.includes('?')?'&':'?') + 'callback=' + cb;
+        s.src = url + (url.includes('?')?'&':'?') + 'jsonp=' + cb;
         s.onerror = ()=>{ delete window[cb]; s.remove(); reject(new Error('JSONP failed')); };
         document.head.appendChild(s);
       });
