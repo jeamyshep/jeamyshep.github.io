@@ -129,6 +129,27 @@
     const GAS_URL = 'https://script.google.com/macros/s/AKfycbxd9OLg33sCwj7jq6TJcxGRgVGBp_n4WBNqjBUOb41zQRWPO2nlSasy9ZwC-6gVb4L2-w/exec';
     const DATE_WINDOW_DAYS = 90; // adjust (label updates automatically)
 
+    // Fixed color per topic label (case-insensitive keys)
+const TOPIC_COLORS = {
+  'invoices':              '#3B82F6',
+  'forms':                 '#F87171',
+  'other':                 '#F59E0B',
+  'reporting':             '#FBBF24',
+  'inventory':             '#34D399',
+  'messaging/client communications': '#8B5CF6',
+  'soap':                  '#D1D5DB',
+  'products':              '#60A5FA',
+  'reminders':             '#FB7185',
+  'scheduling':            '#F59E0B',
+  'clients/patients':      '#FCD34D'
+};
+// fallback colors if an unexpected topic appears
+const FALLBACK_COLORS = ['#10B981','#A78BFA','#FCA5A5','#FCD34D','#93C5FD','#6EE7B7','#F9A8D4','#FDE68A','#86EFAC','#C4B5FD'];
+function colorForTopic(name, i){
+  const key = String(name||'').trim().toLowerCase();
+  return TOPIC_COLORS[key] || FALLBACK_COLORS[i % FALLBACK_COLORS.length];
+}
+
     // ======= JSONP helper (CORS-free) =======
     function jsonp(url){
       return new Promise((resolve,reject)=>{
@@ -273,29 +294,43 @@
         }
       });
 
-      // Topics pie from question_2_topic of Completed only
-      const topics = new Map();
-      for (const r of m.completed){
-        const k = String(r.question_2_topic||'Other').trim() || 'Other';
-        topics.set(k, (topics.get(k)||0) + 1);
-      }
-      const topicLabels = Array.from(topics.keys());
-      const topicData = topicLabels.map(k=>topics.get(k));
-      if (pieChart) pieChart.destroy();
-      pieChart = new Chart(document.getElementById('topicsPie').getContext('2d'), {
-        type:'pie',
-        data:{
-          labels:topicLabels,
-          datasets:[{
-            data: topicData,
-            borderWidth: 1
-          }]
-        },
-        options:{
-          responsive:true,
-          maintainAspectRatio:false
-        }
-      });
+      // Topics pie from question_2_topic of Completed only, with stable colors
+const topics = new Map();
+for (const r of m.completed){
+  const k = String(r.question_2_topic || 'Unspecified').trim() || 'Unspecified';
+  topics.set(k, (topics.get(k)||0) + 1);
+}
+
+// Prefer a canonical order so legend is stable, but keep any unseen labels
+const CANON = ['Invoices','Forms','Other','Reporting','Inventory','Messaging/Client Communications','SOAP','Products','Reminders','Scheduling','Clients/Patients','Unspecified'];
+const seen = new Set(topics.keys());
+const topicLabels = CANON.filter(t => seen.has(t)).concat([...seen].filter(t => !CANON.includes(t)));
+
+const topicData   = topicLabels.map(k => topics.get(k));
+const topicColors = topicLabels.map((k,i) => colorForTopic(k,i));
+
+if (pieChart) pieChart.destroy();
+pieChart = new Chart(document.getElementById('topicsPie').getContext('2d'), {
+  type:'doughnut',
+  data:{
+    labels: topicLabels,
+    datasets:[{
+      data: topicData,
+      backgroundColor: topicColors,
+      borderColor: '#ffffff',
+      borderWidth: 1,
+      hoverOffset: 4
+    }]
+  },
+  options:{
+    responsive:true,
+    maintainAspectRatio:false,
+    cutout: '55%',
+    plugins:{
+      legend:{ position:'top', labels:{ usePointStyle:true, boxWidth:10 } }
+    }
+  }
+});
 
       // Table
       renderTable(m.inRange);
